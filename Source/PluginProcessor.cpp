@@ -1,15 +1,6 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin processor.
-
-  ==============================================================================
-*/
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-//==============================================================================
 CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 #ifndef JucePlugin_PreferredChannelConfigurations
      : AudioProcessor (BusesProperties()
@@ -22,13 +13,14 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
                        )
 #endif
 {
+
 }
 
 CounterTune_v2AudioProcessor::~CounterTune_v2AudioProcessor()
 {
+
 }
 
-//==============================================================================
 const juce::String CounterTune_v2AudioProcessor::getName() const
 {
     return JucePlugin_Name;
@@ -68,8 +60,7 @@ double CounterTune_v2AudioProcessor::getTailLengthSeconds() const
 
 int CounterTune_v2AudioProcessor::getNumPrograms()
 {
-    return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
-                // so this should be at least 1, even if you're not really implementing programs.
+    return 1;
 }
 
 int CounterTune_v2AudioProcessor::getCurrentProgram()
@@ -88,19 +79,17 @@ const juce::String CounterTune_v2AudioProcessor::getProgramName (int index)
 
 void CounterTune_v2AudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
+
 }
 
-//==============================================================================
 void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
+
 }
 
 void CounterTune_v2AudioProcessor::releaseResources()
 {
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
+
 }
 
 #ifndef JucePlugin_PreferredChannelConfigurations
@@ -110,15 +99,11 @@ bool CounterTune_v2AudioProcessor::isBusesLayoutSupported (const BusesLayout& la
     juce::ignoreUnused (layouts);
     return true;
   #else
-    // This is the place where you check if the layout is supported.
-    // In this template code we only support mono or stereo.
-    // Some plugin hosts, such as certain GarageBand versions, will only
-    // load plugins that support stereo bus layouts.
+
     if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
      && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
-    // This checks if the input layout matches the output layout
    #if ! JucePlugin_IsSynth
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
@@ -158,10 +143,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     }
 }
 
-//==============================================================================
 bool CounterTune_v2AudioProcessor::hasEditor() const
 {
-    return true; // (change this to false if you choose to not supply an editor)
+    return true;
 }
 
 juce::AudioProcessorEditor* CounterTune_v2AudioProcessor::createEditor()
@@ -169,7 +153,6 @@ juce::AudioProcessorEditor* CounterTune_v2AudioProcessor::createEditor()
     return new CounterTune_v2AudioProcessorEditor (*this);
 }
 
-//==============================================================================
 void CounterTune_v2AudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
@@ -183,8 +166,6 @@ void CounterTune_v2AudioProcessor::setStateInformation (const void* data, int si
     // whose contents will have been created by the getStateInformation() call.
 }
 
-//==============================================================================
-// This creates new instances of the plugin..
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new CounterTune_v2AudioProcessor();
