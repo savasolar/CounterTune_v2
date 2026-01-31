@@ -84,8 +84,8 @@ void CounterTune_v2AudioProcessor::changeProgramName (int index, const juce::Str
 
 void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    //analysisBuffer.setSize(1, 1024, true);
-    //pitchDetectorFillPos = 0;
+//    analysisBuffer.setSize(1, 1024, true);
+//    pitchDetectorFillPos = 0;
 
 }
 
