@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "dywapitchtrack.h"
 
 class CounterTune_v2AudioProcessor  : public juce::AudioProcessor
 {
