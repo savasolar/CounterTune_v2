@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="BFGxK8" name="CounterTune_v2" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" headerPath="../../Dependencies/dywapitchtrack/src">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
   <MAINGROUP id="izGzwb" name="CounterTune_v2">
     <GROUP id="{68F928AA-FA6C-5F25-7960-910571D5C58F}" name="Source">
+      <FILE id="BgtYV1" name="dywapitchtrack.c" compile="1" resource="0"
+            file="Source/dywapitchtrack.c"/>
+      <FILE id="Gx3Caj" name="dywapitchtrack.h" compile="0" resource="0"
+            file="Source/dywapitchtrack.h"/>
       <FILE id="DTTN81" name="PluginProcessor.cpp" compile="1" resource="0"
             file="Source/PluginProcessor.cpp"/>
       <FILE id="p93Laf" name="PluginProcessor.h" compile="0" resource="0"

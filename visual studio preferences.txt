@@ -1,6 +1,6 @@
 # Symbolic link for debugging full version:
 
-# mklink /D "C:\Program Files\Common Files\VST3\CounterTune_v2.vst3" "C:\Users\savas\Documents\JUCE Projects\CounterTune_v2\Builds\VisualStudio2022\x64\Debug\VST3\CounterTune_v2.vst3\Contents\x86_64-win\CounterTune_v2.vst3"
+# mklink /D "C:\Program Files\Common Files\VST3\CounterTune_v2.vst3" "C:\Users\savas\Documents\JUCE Projects\CounterTune_v2\Builds\VisualStudio2022\x64\Debug\VST3\CounterTune_v2.vst3"
 
 # visual studio project preferences:
 

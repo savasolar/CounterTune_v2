@@ -13,7 +13,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
                        )
 #endif
 {
-
+//    dywapitch_inittracking(&pitchTracker);
 }
 
 CounterTune_v2AudioProcessor::~CounterTune_v2AudioProcessor()
@@ -84,6 +84,8 @@ void CounterTune_v2AudioProcessor::changeProgramName (int index, const juce::Str
 
 void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    //analysisBuffer.setSize(1, 1024, true);
+    //pitchDetectorFillPos = 0;
 
 }
 
@@ -118,9 +120,61 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 {
     juce::ScopedNoDenormals noDenormals;
 
-    // free demo condition check
+//    int numSamples = buffer.getNumSamples();
 
-    // synchronize bpm from DAW
+    // synchronize daw bpm
+    // ...
+
+
+    // get pitch readouts
+
+    // Mix current block to mono for pitch detection
+    /*
+    juce::AudioBuffer<float> monoBlock(1, numSamples);
+    monoBlock.clear();
+    int numChannels = juce::jmin(getTotalNumInputChannels(), buffer.getNumChannels());
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        monoBlock.addFrom(0, 0, buffer, ch, 0, numSamples);
+    }
+    if (numChannels > 0) monoBlock.applyGain(1.0f / numChannels);
+    auto* monoData = monoBlock.getReadPointer(0);
+
+    // Accumulate for pitch detection
+    int analysisSpaceLeft = analysisBuffer.getNumSamples() - pitchDetectorFillPos;
+    int analysisToCopy = juce::jmin(analysisSpaceLeft, numSamples);
+    analysisBuffer.copyFrom(0, pitchDetectorFillPos, monoData, analysisToCopy);
+    pitchDetectorFillPos += analysisToCopy;
+
+    // If full, detect pitch and store MIDI note
+    if (pitchDetectorFillPos >= analysisBuffer.getNumSamples())
+    {
+        // DYWAPitchTrack uses double*, but analysisBuffer is float*. Convert temporarily.
+        std::vector<double> doubleSamples(1024);
+        for (int i = 0; i < 1024; ++i)
+            doubleSamples[i] = analysisBuffer.getSample(0, i);
+
+        // Compute pitch (returns Hz, or 0.0 if no pitch detected).
+        double pitch = dywapitch_computepitch(&pitchTracker, doubleSamples.data(), 0, 1024);
+        pitch *= (getSampleRate() / 44100.0); // Scale for DYWAPitchTrack's 44100 assumption
+
+        DBG(pitch);
+
+//        int midiNote = frequencyToMidiNote(static_cast<float>(pitch));
+
+//        detectedNoteNumbers.push_back(midiNote);
+
+        pitchDetectorFillPos = 0;
+    }
+
+    // Handle overflow
+    if (analysisToCopy < numSamples)
+    {
+        analysisBuffer.copyFrom(0, 0, monoData + analysisToCopy, numSamples - analysisToCopy);
+        pitchDetectorFillPos = numSamples - analysisToCopy;
+    }
+    */
+
 
     // detect if there is "musical" input audio
         // based on pitch detector readout
