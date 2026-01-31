@@ -140,7 +140,17 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 {
     juce::ScopedNoDenormals noDenormals;
     
+    // Set up timers
+
     int numSamples = buffer.getNumSamples();
+        
+        // # of samples in 1 cycle = 32 * ((sampleRate * (60/bpm)) / 4)
+        // SIMPLIFIED: samples_in_cycle = sampleRate * 480 / BPM
+
+
+
+
+    // Get good pitch readouts
 
     // Mix current block to mono for pitch detection
     juce::AudioBuffer<float> monoBlock(1, numSamples);
