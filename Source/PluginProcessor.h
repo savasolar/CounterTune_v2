@@ -9,6 +9,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "dywapitchtrack.h"
 
 //==============================================================================
 /**
@@ -57,8 +58,14 @@ public:
     void setMixFloat(float newMixFloat) { auto* param = parameters.getParameter("mix"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newMixFloat)); }
 
 
-        juce::AudioProcessorValueTreeState parameters;
+    juce::AudioProcessorValueTreeState parameters;
 private:
+
+    // Pitch detection utilities
+    dywapitchtracker pitchTracker;
+    juce::AudioBuffer<float> analysisBuffer{ 1, 1024 };
+    int pitchDetectorFillPos = 0;
+
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CounterTune_v2AudioProcessor)
 };
