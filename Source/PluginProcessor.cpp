@@ -19,7 +19,11 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
                       #endif
                        .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ),
+        parameters(*this, nullptr, "Parameters",
+        {
+            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.5f)
+        })
 #endif
 {
 }
