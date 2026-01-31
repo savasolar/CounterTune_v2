@@ -1,3 +1,12 @@
+# Symbolic link for debug version:
+
+# mklink /D "C:\Program Files\Common Files\VST3\CounterTune_v2.vst3" "C:\Users\savas\Documents\JUCE Projects\CounterTune_v2\cmake_build\CounterTune_artefacts\Debug\VST3\CounterTune_v2.vst3"
+
+# visual studio project preferences:
+
+# command: C:\Program Files (x86)\Image-Line\FL Studio 12\FL64.exe
+
+
 cmake_minimum_required(VERSION 3.15)
 
 if(APPLE)
