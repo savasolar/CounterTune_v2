@@ -38,9 +38,9 @@ endif()
 
 # Conditional product name
 if(DEMO_BUILD)
-    set(PLUGIN_PRODUCT_NAME "CounterTune v2 Demo")
+    set(PLUGIN_PRODUCT_NAME "CounterTune_v2_Demo")
 else()
-    set(PLUGIN_PRODUCT_NAME "CounterTune v2")
+    set(PLUGIN_PRODUCT_NAME "CounterTune_v2")
 endif()
 
 # Define user library path for plugin installation (macOS-specific)
