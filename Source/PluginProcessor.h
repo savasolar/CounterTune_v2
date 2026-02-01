@@ -61,6 +61,15 @@ public:
     juce::AudioProcessorValueTreeState parameters;
 private:
 
+    // Timing utilities
+
+    float bpm = 120.0f;
+
+    bool triggerCycle = false;
+
+    int duotrigesimaleCounter = 0;
+    int duotrigesimale = 0;
+
     // Pitch detection utilities
     dywapitchtracker pitchTracker;
     juce::AudioBuffer<float> analysisBuffer{ 1, 1024 };

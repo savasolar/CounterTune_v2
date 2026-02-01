@@ -140,15 +140,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 {
     juce::ScopedNoDenormals noDenormals;
     
-    // Set up timers
+    // shared vars
 
     int numSamples = buffer.getNumSamples();
         
-        // # of samples in 1 cycle = 32 * ((sampleRate * (60/bpm)) / 4)
-        // SIMPLIFIED: samples_in_cycle = sampleRate * 480 / BPM
-
-
-
 
     // Get good pitch readouts
 
@@ -185,7 +180,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
   //      detectedNoteNumbers.push_back(midiNote);
 
-        DBG(pitch);
+//        DBG(pitch);
+
+        if (pitch != 0)
+            triggerCycle = true;
 
         pitchDetectorFillPos = 0;
     }
@@ -196,6 +194,25 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         analysisBuffer.copyFrom(0, 0, monoData + analysisToCopy, numSamples - analysisToCopy);
         pitchDetectorFillPos = numSamples - analysisToCopy;
     }
+
+
+    // Set up timers
+
+    int samples_in_cycle = getSampleRate() * 480 / bpm;
+    int samplesPer16th = samples_in_cycle / 32;
+    int samplesPer16thRemainder = samples_in_cycle % 32;
+
+    if (triggerCycle)
+    {
+
+
+        // mimic bitlocker mechanism with simpler bools
+
+    }
+
+    //    DBG(sampleCounter);
+
+
 
 }
 
