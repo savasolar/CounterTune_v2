@@ -202,10 +202,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
     if (triggerCycle)
     {
-        // counter for recording input audio buffer
+        // High-resolution counter for recording input audio buffer
         // ...
 
-        // counter for symbolically transcribing input audio
+        // Low-resolution counter for symbolically transcribing input audio
 
         int captureSpaceLeft = (sPs * 32 + std::max(sampleDrift, 0)) - phaseCounter;
         int captureToCopy = juce::jmin(captureSpaceLeft, numSamples);
@@ -216,6 +216,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             {
                 if (!isExecuted(symbolExecuted, n))
                 {
+                    DBG(n);
 
                     sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
                     setExecuted(symbolExecuted, n);
@@ -223,13 +224,23 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
         }
 
-        // counter for synthesizing generated transcriptions
-        // ...
+        // Low-resolution counter for reading generated transcriptions
+        for (int n = 0; n < 32; ++n)
+        {
+            if (phaseCounter >= n * sPs)
+            {
+                if (!isExecuted(playbackSymbolExecuted, n))
+                {
+                    DBG(n + 100);
+
+                    setExecuted(playbackSymbolExecuted, n);
+                }
+            }
+        }
 
         phaseCounter += captureToCopy;
 
-        // conditions for stopping or resetting timing
-        // ...
+        // Low-resolution counter for stopping or resetting timing
 
         if (phaseCounter >= sPs * 32 + sampleDrift)
         {
@@ -244,6 +255,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             resetTiming();
         }
 
+        // High-resolution counter for synthesizing generated transcriptions
+        // ...
 
     }
 
