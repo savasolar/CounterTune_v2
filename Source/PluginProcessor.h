@@ -65,10 +65,15 @@ private:
 
     float bpm = 120.0f;
     float speed = 1.00;
+    int sPs = 0;
+    int sampleDrift = 0;
     bool triggerCycle = false;
-    int duotrigesimaleCounter = 0;
-    int duotrigesimale = 0;
+//    int duotrigesimaleCounter = 0;
+//    int duotrigesimale = 0;
+    int phaseCounter = 0;
     uint32_t symbolExecuted = 0;
+    uint32_t playbackSymbolExecuted = 0;
+    uint32_t fractionalSymbolExecuted = 0;
     inline void setExecuted(int step)
     {
         jassert(step >= 0 && step < 32);
@@ -97,6 +102,16 @@ private:
         bool result = symbolExecuted == 0xFFFFFFFFu;
         DBG("allExecuted = " << (result ? "true" : "false") << " (symbolExecuted = 0x" << juce::String::formatted("%08X", symbolExecuted) << ")");
         return result;
+    }
+    inline void resetTiming()
+    {
+        pitchDetectorFillPos = 0;
+
+        float currentBpm = bpm;
+        float currentSpeed = speed;
+        sPs = static_cast<int>(std::round(60.0 / currentBpm * getSampleRate() / 4.0 * 1.0 / speed));
+
+        resetAllExecuted();
     }
 
 

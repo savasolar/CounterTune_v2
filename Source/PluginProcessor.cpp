@@ -28,7 +28,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 {
     dywapitch_inittracking(&pitchTracker);
 
-    DBG("constructor loaded");
+    DBG("check 123");
 }
 
 CounterTune_v2AudioProcessor::~CounterTune_v2AudioProcessor()
@@ -101,7 +101,8 @@ void CounterTune_v2AudioProcessor::changeProgramName (int index, const juce::Str
 void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     analysisBuffer.setSize(1, 1024, true);
-    pitchDetectorFillPos = 0;
+
+    resetTiming();
 }
 
 void CounterTune_v2AudioProcessor::releaseResources()
@@ -143,6 +144,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     // shared vars
 
     int numSamples = buffer.getNumSamples();
+
         
 
     // Get good pitch readouts
@@ -196,22 +198,31 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     }
 
 
-    // Set up timers
-
-    int samples_in_cycle = getSampleRate() * 480 / bpm;
-    int samplesPer16th = samples_in_cycle / 32;
-    int samplesPer16thRemainder = samples_in_cycle % 32;
-
-    std::vector<bool> symbolExecuted = std::vector<bool>(32, false);
-
     // count stuff
 
     if (triggerCycle)
     {
 
 
-        // mimic bitlocker mechanism with simpler bools
+        // counter for symbolically transcribing input audio
 
+        int captureSpaceLeft = (sPs * 32 + std::max(sampleDrift, 0)) - phaseCounter;
+        int captureToCopy = juce::jmin(captureSpaceLeft, numSamples);
+
+        for (int n = 0; n < 32; ++n)
+        {
+            if (phaseCounter > (n + 0.5) * sPs)
+            {
+                if (!isExecuted(n))
+                {
+
+                    sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
+                    setExecuted(n);
+                }
+            }
+        }
+
+        phaseCounter += captureToCopy;
     }
 
     //    DBG(sampleCounter);
