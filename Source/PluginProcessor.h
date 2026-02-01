@@ -74,44 +74,37 @@ private:
     uint32_t symbolExecuted = 0;
     uint32_t playbackSymbolExecuted = 0;
     uint32_t fractionalSymbolExecuted = 0;
-    inline void setExecuted(int step)
+    inline void setExecuted(uint32_t& mask, int step)
     {
         jassert(step >= 0 && step < 32);
-        symbolExecuted |= (1u << step);
-        DBG("setExecuted(" << step << ") -> symbolExecuted = 0x" << juce::String::formatted("%08X", symbolExecuted));
+        mask |= (1u << step);
     }
-    inline void clearExecuted(int step)
+    inline void clearExecuted(uint32_t& mask, int step)
     {
         jassert(step >= 0 && step < 32);
-        symbolExecuted &= ~(1u << step);
-        DBG("clearExecuted(" << step << ") -> symbolExecuted = 0x" << juce::String::formatted("%08X", symbolExecuted));
+        mask &= ~(1u << step);
     }
-    inline void resetAllExecuted()
+    inline void resetAllExecuted(uint32_t& mask)
     {
-        symbolExecuted = 0;
+        mask = 0;
     }
-    inline bool isExecuted(int step) const
+    inline bool isExecuted(uint32_t& mask, int step) const
     {
         jassert(step >= 0 && step < 32);
-        return (symbolExecuted & (1u << step)) != 0;
+        return (mask & (1u << step)) != 0;
     }
-    // Optional: check if all steps executed this cycle
-    inline bool allExecuted() const
+    inline bool allExecuted(uint32_t& mask) const
     {
-//        return symbolExecuted == 0xFFFFFFFFu;
-        bool result = symbolExecuted == 0xFFFFFFFFu;
-        DBG("allExecuted = " << (result ? "true" : "false") << " (symbolExecuted = 0x" << juce::String::formatted("%08X", symbolExecuted) << ")");
-        return result;
+        return mask == 0xFFFFFFFFu;
     }
     inline void resetTiming()
     {
         pitchDetectorFillPos = 0;
+        phaseCounter = 0;
 
         float currentBpm = bpm;
         float currentSpeed = speed;
         sPs = static_cast<int>(std::round(60.0 / currentBpm * getSampleRate() / 4.0 * 1.0 / speed));
-
-        resetAllExecuted();
     }
 
 

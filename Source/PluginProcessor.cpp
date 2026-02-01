@@ -202,7 +202,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
     if (triggerCycle)
     {
-
+        // counter for recording input audio buffer
+        // ...
 
         // counter for symbolically transcribing input audio
 
@@ -213,16 +214,37 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         {
             if (phaseCounter > (n + 0.5) * sPs)
             {
-                if (!isExecuted(n))
+                if (!isExecuted(symbolExecuted, n))
                 {
 
                     sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
-                    setExecuted(n);
+                    setExecuted(symbolExecuted, n);
                 }
             }
         }
 
+        // counter for synthesizing generated transcriptions
+        // ...
+
         phaseCounter += captureToCopy;
+
+        // conditions for stopping or resetting timing
+        // ...
+
+        if (phaseCounter >= sPs * 32 + sampleDrift)
+        {
+            DBG("cycle end");
+
+            resetAllExecuted(symbolExecuted);
+            resetAllExecuted(playbackSymbolExecuted);
+            resetAllExecuted(fractionalSymbolExecuted);
+
+
+
+            resetTiming();
+        }
+
+
     }
 
     //    DBG(sampleCounter);
