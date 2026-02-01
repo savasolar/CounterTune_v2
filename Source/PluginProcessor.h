@@ -64,11 +64,41 @@ private:
     // Timing utilities
 
     float bpm = 120.0f;
-
+    float speed = 1.00;
     bool triggerCycle = false;
-
     int duotrigesimaleCounter = 0;
     int duotrigesimale = 0;
+    uint32_t symbolExecuted = 0;
+    inline void setExecuted(int step)
+    {
+        jassert(step >= 0 && step < 32);
+        symbolExecuted |= (1u << step);
+        DBG("setExecuted(" << step << ") -> symbolExecuted = 0x" << juce::String::formatted("%08X", symbolExecuted));
+    }
+    inline void clearExecuted(int step)
+    {
+        jassert(step >= 0 && step < 32);
+        symbolExecuted &= ~(1u << step);
+        DBG("clearExecuted(" << step << ") -> symbolExecuted = 0x" << juce::String::formatted("%08X", symbolExecuted));
+    }
+    inline void resetAllExecuted()
+    {
+        symbolExecuted = 0;
+    }
+    inline bool isExecuted(int step) const
+    {
+        jassert(step >= 0 && step < 32);
+        return (symbolExecuted & (1u << step)) != 0;
+    }
+    // Optional: check if all steps executed this cycle
+    inline bool allExecuted() const
+    {
+//        return symbolExecuted == 0xFFFFFFFFu;
+        bool result = symbolExecuted == 0xFFFFFFFFu;
+        DBG("allExecuted = " << (result ? "true" : "false") << " (symbolExecuted = 0x" << juce::String::formatted("%08X", symbolExecuted) << ")");
+        return result;
+    }
+
 
     // Pitch detection utilities
     dywapitchtracker pitchTracker;

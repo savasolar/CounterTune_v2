@@ -202,6 +202,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     int samplesPer16th = samples_in_cycle / 32;
     int samplesPer16thRemainder = samples_in_cycle % 32;
 
+    std::vector<bool> symbolExecuted = std::vector<bool>(32, false);
+
+    // count stuff
+
     if (triggerCycle)
     {
 
