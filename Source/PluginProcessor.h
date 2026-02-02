@@ -44,6 +44,7 @@ private:
     float speed = 1.00;
     int sPs = 0;
     int sampleDrift = 0;
+    bool isFirstCycle = true;
     bool triggerCycle = false;
     int phaseCounter = 0;
     uint32_t symbolExecuted = 0;
@@ -57,8 +58,16 @@ private:
     
     inline void resetTiming()
     {
-        triggerCycle = false;
-//        pitchDetectorFillPos = 0;
+
+
+        if (!detectedFrequencies.empty() && std::all_of(detectedFrequencies.begin(), detectedFrequencies.end(), [](float f) { return f <= 0.0f; }))
+        {
+            triggerCycle = false;
+            isFirstCycle = true;
+        }
+
+
+        pitchDetectorFillPos = 0;
         detectedFrequencies.clear();
         detectedNoteNumbers.clear();
         inputAudioBuffer.clear();

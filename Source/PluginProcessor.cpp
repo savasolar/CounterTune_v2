@@ -90,6 +90,8 @@ void CounterTune_v2AudioProcessor::changeProgramName (int index, const juce::Str
 
 void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
+    DBG("prepareToPlay called");
+
     analysisBuffer.setSize(1, 1024, true);
 
     resetTiming();
@@ -166,19 +168,22 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 //        int midiNote = frequencyToMidiNote(static_cast<float>(pitch));
 
-  //      detectedNoteNumbers.push_back(midiNote);
+//        detectedNoteNumbers.push_back(midiNote);
 
 //        DBG(pitch);
 
 
-        
+        detectedFrequencies.push_back(static_cast<float>(pitch));
 
 
         if (pitch != 0)
+        {
             triggerCycle = true;
+        }
 
-        if (triggerCycle)
-            detectedFrequencies.push_back(static_cast<float>(pitch));
+
+//        if (triggerCycle)
+//            detectedFrequencies.push_back(static_cast<float>(pitch));
 
 
 
@@ -256,6 +261,15 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             resetAllExecuted(symbolExecuted);
             resetAllExecuted(playbackSymbolExecuted);
             resetAllExecuted(fractionalSymbolExecuted);
+
+            if (isFirstCycle)
+            {
+                if (!detectedFrequencies.empty())
+                {
+                    detectedFrequencies.erase(detectedFrequencies.begin());
+                }
+                isFirstCycle = false;
+            }
 
 
             // DBG print:
