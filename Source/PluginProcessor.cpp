@@ -164,34 +164,27 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         double pitch = dywapitch_computepitch(&pitchTracker, doubleSamples.data(), 0, 1024);
         pitch *= (getSampleRate() / 44100.0); // Scale for DYWAPitchTrack's 44100 assumption
 
-        detectedFrequencies.push_back(static_cast<float>(pitch));
-
 //        int midiNote = frequencyToMidiNote(static_cast<float>(pitch));
 
   //      detectedNoteNumbers.push_back(midiNote);
 
 //        DBG(pitch);
 
-        juce::StringArray freqArray;
-        freqArray.ensureStorageAllocated(static_cast<int>(detectedFrequencies.size()));
 
-        for (float freq : detectedFrequencies)
-        {
-            if (freq <= 0.0f)
-                freqArray.add("0");                     // or "no-pitch" if you prefer text
-            else
-                freqArray.add(juce::String(freq, 3));   // 3 decimal places — plenty for musical Hz values
-        }
-
-        DBG("Detected Frequencies (" + juce::String(detectedFrequencies.size()) + " values): "
-            + freqArray.joinIntoString(", "));
-
-
-
+        
 
 
         if (pitch != 0)
             triggerCycle = true;
+
+        if (triggerCycle)
+            detectedFrequencies.push_back(static_cast<float>(pitch));
+
+
+
+
+        
+
 
         pitchDetectorFillPos = 0;
     }

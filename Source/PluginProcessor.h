@@ -57,7 +57,8 @@ private:
     
     inline void resetTiming()
     {
-        pitchDetectorFillPos = 0;
+        triggerCycle = false;
+//        pitchDetectorFillPos = 0;
         detectedFrequencies.clear();
         detectedNoteNumbers.clear();
         inputAudioBuffer.clear();
