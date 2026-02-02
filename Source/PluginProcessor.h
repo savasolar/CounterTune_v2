@@ -52,21 +52,68 @@ private:
     inline void resetAllExecuted(uint32_t& mask) { mask = 0; }
     inline bool isExecuted(uint32_t& mask, int step) const { jassert(step >= 0 && step < 32); return (mask & (1u << step)) != 0; }
     inline bool allExecuted(uint32_t& mask) const { return mask == 0xFFFFFFFFu; }
+    
     inline void resetTiming()
     {
         pitchDetectorFillPos = 0;
+        detectedNoteNumbers.clear();
+        inputAudioBuffer.clear();
+        inputAudioBuffer_writePos.store(0);
         phaseCounter = 0;
+        std::fill(capturedMelody.begin(), capturedMelody.end(), -1);
 
         float currentBpm = bpm;
         float currentSpeed = speed;
         sPs = static_cast<int>(std::round(60.0 / currentBpm * getSampleRate() / 4.0 * 1.0 / speed));
-    }
 
+        int requiredSize = 32 * sPs + 4096;
+        inputAudioBuffer.setSize(2, requiredSize, false, true);
+        inputAudioBuffer_samplesToRecord.store(requiredSize);
+    }
 
     // Pitch detection utilities
     dywapitchtracker pitchTracker;
     juce::AudioBuffer<float> analysisBuffer{ 1, 1024 };
     int pitchDetectorFillPos = 0;
+    std::vector<int> detectedNoteNumbers;
+    int frequencyToMidiNote(float frequency);
+
+    // Audio recording utilities
+    juce::AudioBuffer<float> inputAudioBuffer;
+    std::atomic<int> inputAudioBuffer_samplesToRecord{ 0 };
+    std::atomic<int> inputAudioBuffer_writePos{ 0 };
+
+    // Melody capture utilities
+    std::vector<int> capturedMelody = std::vector<int>(32, -1);
+    std::vector<int> formatMelody(const std::vector<int>& melody, bool isGeneratedMelody) const;
+
+    // Melody generation utilities
+    std::vector<int> generatedMelody = std::vector<int>(32, -1);
+    std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
+    void detectKey(const std::vector<int>& melody);
+    int detectedKey = 0;
+    void produceMelody(const std::vector<int>& melody, int key, int notes, int chaos);
+    void magnetize(std::vector<int>& melody, float probability) const;
+
+    // Voice buffer creation utilities
+    juce::AudioBuffer<float> isolateBestNote();
+    void timeStretch(juce::AudioBuffer<float> inputAudio, float lengthSeconds);
+    juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote);
+
+
+    // Audio playback utilities
+    juce::AudioBuffer<float> voiceBuffer;
+    std::atomic<int> newVoiceNoteNumber{ -1 };
+    std::atomic<int> voiceNoteNumber{ -1 };
+    juce::AudioBuffer<float> finalVoiceBuffer;
+    std::atomic<int> finalVoiceBuffer_readPos{ 0 };
+    int playbackNote = -1;
+    bool playbackNoteActive = false;
+    juce::dsp::DryWetMixer<float> dryWetMixer;
+    juce::ADSR adsr;
+    juce::ADSR::Parameters adsrParams;
+    std::atomic<bool> useADSR{ false };
+
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CounterTune_v2AudioProcessor)
