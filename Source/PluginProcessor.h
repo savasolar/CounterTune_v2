@@ -1,3 +1,5 @@
+// PluginProcessor.h
+
 #pragma once
 
 #include <JuceHeader.h>
@@ -56,6 +58,7 @@ private:
     inline void resetTiming()
     {
         pitchDetectorFillPos = 0;
+        detectedFrequencies.clear();
         detectedNoteNumbers.clear();
         inputAudioBuffer.clear();
         inputAudioBuffer_writePos.store(0);
@@ -75,6 +78,7 @@ private:
     dywapitchtracker pitchTracker;
     juce::AudioBuffer<float> analysisBuffer{ 1, 1024 };
     int pitchDetectorFillPos = 0;
+    std::vector<float> detectedFrequencies;
     std::vector<int> detectedNoteNumbers;
     int frequencyToMidiNote(float frequency);
 

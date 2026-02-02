@@ -1,3 +1,5 @@
+// PluginProcessor.cpp
+
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -162,11 +164,31 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         double pitch = dywapitch_computepitch(&pitchTracker, doubleSamples.data(), 0, 1024);
         pitch *= (getSampleRate() / 44100.0); // Scale for DYWAPitchTrack's 44100 assumption
 
+        detectedFrequencies.push_back(static_cast<float>(pitch));
+
 //        int midiNote = frequencyToMidiNote(static_cast<float>(pitch));
 
   //      detectedNoteNumbers.push_back(midiNote);
 
 //        DBG(pitch);
+
+        juce::StringArray freqArray;
+        freqArray.ensureStorageAllocated(static_cast<int>(detectedFrequencies.size()));
+
+        for (float freq : detectedFrequencies)
+        {
+            if (freq <= 0.0f)
+                freqArray.add("0");                     // or "no-pitch" if you prefer text
+            else
+                freqArray.add(juce::String(freq, 3));   // 3 decimal places — plenty for musical Hz values
+        }
+
+        DBG("Detected Frequencies (" + juce::String(detectedFrequencies.size()) + " values): "
+            + freqArray.joinIntoString(", "));
+
+
+
+
 
         if (pitch != 0)
             triggerCycle = true;
@@ -187,10 +209,18 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     if (triggerCycle)
     {
         // High-resolution counter for recording input audio buffer
-        // ...
+        int spaceLeft = inputAudioBuffer_samplesToRecord.load() - inputAudioBuffer_writePos.load();
+        int toCopy = juce::jmin(numSamples, spaceLeft);
+
+        for (int ch = 0; ch < juce::jmin(getTotalNumInputChannels(), inputAudioBuffer.getNumChannels()); ++ch)
+        {
+            inputAudioBuffer.copyFrom(ch, inputAudioBuffer_writePos.load(), buffer, ch, 0, toCopy);
+        }
+
+        inputAudioBuffer_writePos.store(inputAudioBuffer_writePos.load() + toCopy);
+
 
         // Low-resolution counter for symbolically transcribing input audio
-
         int captureSpaceLeft = (sPs * 32 + std::max(sampleDrift, 0)) - phaseCounter;
         int captureToCopy = juce::jmin(captureSpaceLeft, numSamples);
 
@@ -200,7 +230,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             {
                 if (!isExecuted(symbolExecuted, n))
                 {
-                    DBG(n);
+                    //DBG(n);
 
                     sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
                     setExecuted(symbolExecuted, n);
@@ -215,7 +245,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             {
                 if (!isExecuted(playbackSymbolExecuted, n))
                 {
-                    DBG(n + 100);
+                    //DBG(n + 100);
 
                     setExecuted(playbackSymbolExecuted, n);
                 }
@@ -235,6 +265,28 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             resetAllExecuted(fractionalSymbolExecuted);
 
 
+            // DBG print:
+            // - samples in inputAudioBuffer ----can't too long
+            // - all indices in detectedFrequencies
+            
+            juce::StringArray freqArray;
+            freqArray.ensureStorageAllocated(static_cast<int>(detectedFrequencies.size()));
+
+            for (float freq : detectedFrequencies)
+            {
+                if (freq <= 0.0f)
+                    freqArray.add("0");                     // or "no-pitch" if you prefer text
+                else
+                    freqArray.add(juce::String(freq, 3));   // 3 decimal places — plenty for musical Hz values
+            }
+
+            DBG("Detected Frequencies (" + juce::String(detectedFrequencies.size()) + " values): "
+                + freqArray.joinIntoString(", "));
+            
+            // - all indices in detectedNoteNumbers
+            // - all indices in capturedMelody
+
+
 
             resetTiming();
         }
@@ -243,8 +295,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         // ...
 
     }
-
-    //    DBG(sampleCounter);
 
 
 
