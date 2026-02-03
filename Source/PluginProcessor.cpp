@@ -173,7 +173,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 //        DBG(pitch);
 
 
-        detectedFrequencies.push_back(static_cast<float>(pitch));
+//        detectedFrequencies.push_back(static_cast<float>(pitch));
 
 
         if (pitch != 0)
@@ -182,8 +182,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         }
 
 
-//        if (triggerCycle)
-//            detectedFrequencies.push_back(static_cast<float>(pitch));
+        if (triggerCycle)
+            detectedFrequencies.push_back(static_cast<float>(pitch));
 
 
 

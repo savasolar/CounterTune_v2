@@ -361,7 +361,8 @@ double _dywapitch_dynamicprocess(dywapitchtracker *pitchtracker, double pitch) {
 	
 	//
 	double estimatedPitch = -1;
-	double acceptedError = 0.2f;
+//	double acceptedError = 0.2f;
+	double acceptedError = 0.5f;
 	int maxConfidence = 5;
 	
 	if (pitch != -1) {
