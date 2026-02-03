@@ -90,7 +90,15 @@ private:
     int pitchDetectorFillPos = 0;
     std::vector<float> detectedFrequencies;
     std::vector<int> detectedNoteNumbers;
-    int frequencyToMidiNote(float frequency);
+    inline int frequencyToMidiNote(float frequency)
+    {
+        if (frequency <= 0.0f)
+        {
+            return -1;
+        }
+
+        return static_cast<int>(std::round(12.0f * std::log2(frequency / 440.0f) + 69.0f));
+    }
 
     // Audio recording utilities
     juce::AudioBuffer<float> inputAudioBuffer;

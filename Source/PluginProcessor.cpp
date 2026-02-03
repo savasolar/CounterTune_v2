@@ -166,14 +166,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         double pitch = dywapitch_computepitch(&pitchTracker, doubleSamples.data(), 0, 1024);
         pitch *= (getSampleRate() / 44100.0); // Scale for DYWAPitchTrack's 44100 assumption
 
-//        int midiNote = frequencyToMidiNote(static_cast<float>(pitch));
-
-//        detectedNoteNumbers.push_back(midiNote);
-
 //        DBG(pitch);
 
-
-//        detectedFrequencies.push_back(static_cast<float>(pitch));
 
 
         if (pitch != 0)
@@ -183,12 +177,15 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 
         if (triggerCycle)
+        {
             detectedFrequencies.push_back(static_cast<float>(pitch));
+            int midiNote = frequencyToMidiNote(static_cast<float>(pitch));
+            detectedNoteNumbers.push_back(midiNote);
+        }
 
 
 
 
-        
 
 
         pitchDetectorFillPos = 0;
@@ -268,6 +265,12 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 {
                     detectedFrequencies.erase(detectedFrequencies.begin());
                 }
+
+                if (!detectedNoteNumbers.empty())
+                {
+                    detectedNoteNumbers.erase(detectedNoteNumbers.begin());
+                }
+
                 isFirstCycle = false;
             }
 
@@ -287,10 +290,21 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     freqArray.add(juce::String(freq, 3));   // 3 decimal places — plenty for musical Hz values
             }
 
-            DBG("Detected Frequencies (" + juce::String(detectedFrequencies.size()) + " values): "
-                + freqArray.joinIntoString(", "));
+//            DBG("Detected Frequencies (" + juce::String(detectedFrequencies.size()) + " values): " + freqArray.joinIntoString(", "));
             
             // - all indices in detectedNoteNumbers
+
+            juce::StringArray nnArray;
+            nnArray.ensureStorageAllocated(static_cast<int>(detectedNoteNumbers.size()));
+
+            for (float note : detectedNoteNumbers)
+            {
+                nnArray.add(juce::String(note));   // 3 decimal places — plenty for musical Hz values
+            }
+
+            DBG("Detected Notes (" + juce::String(detectedNoteNumbers.size()) + " values): " + nnArray.joinIntoString(", "));
+
+
             // - all indices in capturedMelody
 
 
