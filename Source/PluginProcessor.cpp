@@ -94,6 +94,9 @@ void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samples
 
     analysisBuffer.setSize(1, 1024, true);
 
+    dryWetMixer.prepare(juce::dsp::ProcessSpec{ sampleRate, static_cast<std::uint32_t> (samplesPerBlock), static_cast<std::uint32_t> (getTotalNumOutputChannels()) });
+    dryWetMixer.setMixingRule(juce::dsp::DryWetMixingRule::balanced);
+
     resetTiming();
 }
 
@@ -373,11 +376,28 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 
 
+
+            // Generate voiceBuffer
+
+
+
+
+
+
             resetTiming();
         }
 
+
         // High-resolution counter for synthesizing generated transcriptions
+        juce::dsp::AudioBlock<float> block(buffer);
+        dryWetMixer.pushDrySamples(block);
+        block.clear();
+
+        // populate output buffer
         // ...
+
+        dryWetMixer.setWetMixProportion(getMixFloat());
+        dryWetMixer.mixWetSamples(block);
 
     }
 

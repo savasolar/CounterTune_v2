@@ -110,7 +110,8 @@ private:
     std::vector<int> formatMelody(const std::vector<int>& melody, bool isGeneratedMelody) const;
 
     // Melody generation utilities
-    std::vector<int> generatedMelody = std::vector<int>(32, -1);
+    std::vector<int> generatedMelody{60, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 };
+//    std::vector<int> generatedMelody = std::vector<int>(32, -1);
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     void detectKey(const std::vector<int>& melody);
     int detectedKey = 0;
