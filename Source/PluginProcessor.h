@@ -121,16 +121,15 @@ private:
     // Voice buffer creation utilities
     juce::AudioBuffer<float> isolateBestNote();
     void timeStretch(juce::AudioBuffer<float> inputAudio, float lengthSeconds);
-    juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote);
+    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote) { return input; }
 
 
     // Audio playback utilities
-    juce::AudioBuffer<float> pre_processed_voiceBuffer;
     juce::AudioBuffer<float> voiceBuffer;
     std::atomic<int> newVoiceNoteNumber{ -1 };
     std::atomic<int> voiceNoteNumber{ -1 };
-    juce::AudioBuffer<float> finalVoiceBuffer;
-    std::atomic<int> finalVoiceBuffer_readPos{ 0 };
+    juce::AudioBuffer<float> synthesisBuffer;
+    std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
     bool playbackNoteActive = false;
     juce::dsp::DryWetMixer<float> dryWetMixer;

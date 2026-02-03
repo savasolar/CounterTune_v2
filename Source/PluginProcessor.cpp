@@ -243,7 +243,29 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             {
                 if (!isExecuted(playbackSymbolExecuted, n))
                 {
-                    //DBG(n + 100);
+                    useADSR.store(false);
+
+                    // prepare a note for playback if there's a note number
+                    if (generatedMelody[n] >= 0)
+                    {
+                        int shiftedNote = generatedMelody[n]/* + getOctaveInt() * 12*/;
+                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), shiftedNote);
+                        synthesisBuffer_readPos.store(0);
+                    }
+
+                    // if next generatedMelody symbol indicates a fadeout in the current symbol is needed, activate useADSR here
+
+                    if ((generatedMelody[(n + 1) % 32]) >= -1)
+                    {
+                        useADSR.store(true);
+                    }
+
+                    if (useADSR.load())
+                    {
+                        adsr.reset();
+                        adsr.noteOn();
+                        adsr.noteOff();
+                    }
 
                     setExecuted(playbackSymbolExecuted, n);
                 }
@@ -373,19 +395,22 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             // DBG hi-res first and last sample indices
             DBG("Hi-res first and last sample indices: " + juce::String(hiResSampleFirstIdx) + ", " + juce::String(hiResSampleLastIdx));
 
+            // This might hide the best chunks so I'll give it more consideration
 
-
-
+            
 
             // Generate voiceBuffer
 
             // To create voiceBuffer, go to hi-res first idx of inputAudioBuffer and accumulate hiResNumSamples, and copy it to voiceBuffer
+
+
 
             voiceBuffer.setSize(inputAudioBuffer.getNumChannels(), hiResNumSamples, false, true, true);
             for (int ch = 0; ch < inputAudioBuffer.getNumChannels(); ++ch)
             {
                 voiceBuffer.copyFrom(ch, 0, inputAudioBuffer, ch, hiResSampleFirstIdx, hiResNumSamples);
             }
+            DBG(juce::String(voiceBuffer.getNumSamples()));
 
 
 
@@ -400,6 +425,30 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
         // populate output buffer
         // ...
+
+        if (synthesisBuffer.getNumSamples() > 0)
+        {
+            int numSamples = buffer.getNumSamples();
+            int voiceBufferSize = synthesisBuffer.getNumSamples();
+            int readPos = synthesisBuffer_readPos.load();
+
+            for (int i = 0; i < numSamples; ++i)
+            {
+                int currentPos = readPos + i;
+
+                if (currentPos >= voiceBufferSize) break;
+
+                float gain = useADSR.load() ? adsr.getNextSample() : 1.0f;
+
+                for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
+                {
+                    buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain);
+                }
+            }
+
+            synthesisBuffer_readPos.store(readPos + numSamples);
+        }
+
 
         dryWetMixer.setWetMixProportion(getMixFloat());
         dryWetMixer.mixWetSamples(block);
