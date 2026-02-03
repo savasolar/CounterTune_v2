@@ -379,8 +379,13 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
             // Generate voiceBuffer
 
+            // To create voiceBuffer, go to hi-res first idx of inputAudioBuffer and accumulate hiResNumSamples, and copy it to voiceBuffer
 
-
+            voiceBuffer.setSize(inputAudioBuffer.getNumChannels(), hiResNumSamples, false, true, true);
+            for (int ch = 0; ch < inputAudioBuffer.getNumChannels(); ++ch)
+            {
+                voiceBuffer.copyFrom(ch, 0, inputAudioBuffer, ch, hiResSampleFirstIdx, hiResNumSamples);
+            }
 
 
 

@@ -125,6 +125,7 @@ private:
 
 
     // Audio playback utilities
+    juce::AudioBuffer<float> pre_processed_voiceBuffer;
     juce::AudioBuffer<float> voiceBuffer;
     std::atomic<int> newVoiceNoteNumber{ -1 };
     std::atomic<int> voiceNoteNumber{ -1 };
