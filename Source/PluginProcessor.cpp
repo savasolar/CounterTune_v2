@@ -259,53 +259,117 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             resetAllExecuted(playbackSymbolExecuted);
             resetAllExecuted(fractionalSymbolExecuted);
 
+            // dump first-chunk duplicate in first cycle after trigger
             if (isFirstCycle)
             {
-                if (!detectedFrequencies.empty())
-                {
-                    detectedFrequencies.erase(detectedFrequencies.begin());
-                }
-
-                if (!detectedNoteNumbers.empty())
-                {
-                    detectedNoteNumbers.erase(detectedNoteNumbers.begin());
-                }
-
+                if (!detectedFrequencies.empty()) { detectedFrequencies.erase(detectedFrequencies.begin()); }
+                if (!detectedNoteNumbers.empty()) { detectedNoteNumbers.erase(detectedNoteNumbers.begin()); }
                 isFirstCycle = false;
             }
 
-
-            // DBG print:
-            // - samples in inputAudioBuffer ----can't too long
-            // - all indices in detectedFrequencies
+            // isolate best chunks in detectedNoteNumbers
             
-            juce::StringArray freqArray;
-            freqArray.ensureStorageAllocated(static_cast<int>(detectedFrequencies.size()));
-
-            for (float freq : detectedFrequencies)
-            {
-                if (freq <= 0.0f)
-                    freqArray.add("0");                     // or "no-pitch" if you prefer text
-                else
-                    freqArray.add(juce::String(freq, 3));   // 3 decimal places — plenty for musical Hz values
-            }
-
-//            DBG("Detected Frequencies (" + juce::String(detectedFrequencies.size()) + " values): " + freqArray.joinIntoString(", "));
-            
-            // - all indices in detectedNoteNumbers
-
+            // dbg print: detectedNoteNumbers
             juce::StringArray nnArray;
             nnArray.ensureStorageAllocated(static_cast<int>(detectedNoteNumbers.size()));
-
-            for (float note : detectedNoteNumbers)
-            {
-                nnArray.add(juce::String(note));   // 3 decimal places — plenty for musical Hz values
-            }
-
+            for (float note : detectedNoteNumbers) { nnArray.add(juce::String(note)); }
             DBG("Detected Notes (" + juce::String(detectedNoteNumbers.size()) + " values): " + nnArray.joinIntoString(", "));
 
+            // Find the first occurrence of over 5 consecutive note numbers in detectedNoteNumbers, put it in lowResIsolatedChunks, and print lowResIsolatedChunks.
+            std::vector<int> lowResIsolatedChunks;
+            int lowResChunkFirstIdx = -1;
+            int lowResChunkLastIdx = -1;
 
-            // - all indices in capturedMelody
+            if (detectedNoteNumbers.size() > 5) {
+                size_t currentStart = 0;
+                for (size_t i = 1; i <= detectedNoteNumbers.size(); ++i) {
+                    if (i == detectedNoteNumbers.size() || detectedNoteNumbers[i] != detectedNoteNumbers[currentStart]) {
+                        size_t length = i - currentStart;
+                        if (length > 5) {
+                            lowResIsolatedChunks.assign(detectedNoteNumbers.begin() + currentStart, detectedNoteNumbers.begin() + i);
+                            lowResChunkFirstIdx = static_cast<int>(currentStart);
+                            lowResChunkLastIdx = static_cast<int>(i - 1);
+                            break;
+                        }
+                        currentStart = i;
+                    }
+                }
+            }
+
+            DBG("Low-res best chunks:");
+            juce::StringArray lrIsoChkArray;
+            lrIsoChkArray.ensureStorageAllocated(static_cast<int>(lowResIsolatedChunks.size()));
+            for (float note : lowResIsolatedChunks) { lrIsoChkArray.add(juce::String(note)); }
+            DBG(lrIsoChkArray.joinIntoString(", "));
+
+            DBG("First and last low-res indices:");
+            DBG(juce::String(lowResChunkFirstIdx) + ", " + juce::String(lowResChunkLastIdx));
+
+            // place the first 5 indices of lowResIsolatedChunks into midResIsolatedChunks
+            std::vector<int> midResIsolatedChunks;
+            int midResChunkFirstIdx = lowResChunkFirstIdx;
+            int midResChunkLastIdx = lowResChunkFirstIdx + 4;
+
+            if (lowResIsolatedChunks.size() >= 5)
+            {
+                midResIsolatedChunks.assign(lowResIsolatedChunks.begin(), lowResIsolatedChunks.begin() + 5);
+            }
+
+            DBG("Mid-res best chunks:");
+            juce::StringArray mrIsoChkArray;
+            mrIsoChkArray.ensureStorageAllocated(static_cast<int>(midResIsolatedChunks.size()));
+            for (float note : midResIsolatedChunks) { mrIsoChkArray.add(juce::String(note)); }
+            DBG(mrIsoChkArray.joinIntoString(", "));
+
+            DBG("First and last mid-res indices:");
+            DBG(juce::String(midResChunkFirstIdx) + ", " + juce::String(midResChunkLastIdx));
+
+            // populate hiResIsolatedChunks with the middle 3 indices of midResIsolatedChunks
+            std::vector<int> hiResIsolatedChunks;
+            int hiResChunkFirstIdx = midResChunkFirstIdx + 1;
+            int hiResChunkLastIdx = midResChunkLastIdx - 1;
+
+            hiResIsolatedChunks.assign(midResIsolatedChunks.begin() + 1, midResIsolatedChunks.begin() + 4);
+
+            DBG("Hi-res best chunks:");
+            juce::StringArray hrIsoChkArray;
+            hrIsoChkArray.ensureStorageAllocated(static_cast<int>(hiResIsolatedChunks.size()));
+            for (float note : hiResIsolatedChunks) { hrIsoChkArray.add(juce::String(note)); }
+            DBG(hrIsoChkArray.joinIntoString(", "));
+
+            DBG("First and last hi-res indices:");
+            DBG(juce::String(hiResChunkFirstIdx) + ", " + juce::String(hiResChunkLastIdx));
+
+            // DBG number of samples in inputAudioBuffer
+            DBG("Audio buffer size:" + juce::String(inputAudioBuffer.getNumSamples()));
+
+            // DBG number of samples in low-resolution isolated audio
+            int lowResSampleFirstIdx = lowResChunkFirstIdx * 1024;
+            int lowResSampleLastIdx = lowResChunkLastIdx * 1024;
+            int lowResNumSamples = lowResSampleLastIdx - lowResSampleFirstIdx + 1024;
+            DBG("Low res best samples amount: " + juce::String(lowResNumSamples));
+
+            // DBG low-res first and last sample indices
+            DBG("Low-res first and last sample indices: " + juce::String(lowResSampleFirstIdx) + ", " + juce::String(lowResSampleLastIdx));
+
+            // DBG number of samples in mid-resolution isolated audio
+            int midResSampleFirstIdx = midResChunkFirstIdx * 1024;
+            int midResSampleLastIdx = midResChunkLastIdx * 1024;
+            int midResNumSamples = midResSampleLastIdx - midResSampleFirstIdx + 1024;
+            DBG("Mid res best samples amount: " + juce::String(midResNumSamples));
+
+            // DBG mid-res first and last sample indices
+            DBG("Mid-res first and last sample indices: " + juce::String(midResSampleFirstIdx) + ", " + juce::String(midResSampleLastIdx));
+
+            // DBG number of samples in hi-resolution isolated audio
+            int hiResSampleFirstIdx = hiResChunkFirstIdx * 1024;
+            int hiResSampleLastIdx = hiResChunkLastIdx * 1024;
+            int hiResNumSamples = hiResSampleLastIdx - hiResSampleFirstIdx + 1024;
+            DBG("Hi res best samples amount: " + juce::String(hiResNumSamples));
+
+            // DBG hi-res first and last sample indices
+            DBG("Hi-res first and last sample indices: " + juce::String(hiResSampleFirstIdx) + ", " + juce::String(hiResSampleLastIdx));
+
 
 
 
