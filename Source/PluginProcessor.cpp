@@ -251,7 +251,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     if (generatedMelody[n] >= 0)
                     {
                         int shiftedNote = generatedMelody[n]/* + getOctaveInt() * 12*/;
-                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), shiftedNote);
+//                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), shiftedNote);
+                        float interval = static_cast<float>(shiftedNote - voiceNoteNumber.load());
+                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), interval);
                         synthesisBuffer_readPos.store(0);
                     }
 

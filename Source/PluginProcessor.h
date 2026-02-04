@@ -34,8 +34,8 @@ public:
     float getMixFloat() const { return *parameters.getRawParameterValue("mix"); }
     void setMixFloat(float newMixFloat) { auto* param = parameters.getParameter("mix"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newMixFloat)); }
 
-
     juce::AudioProcessorValueTreeState parameters;
+
 private:
 
     // Timing utilities
@@ -58,14 +58,11 @@ private:
     
     inline void resetTiming()
     {
-
-
         if (!detectedFrequencies.empty() && std::all_of(detectedFrequencies.begin(), detectedFrequencies.end(), [](float f) { return f <= 0.0f; }))
         {
             triggerCycle = false;
             isFirstCycle = true;
         }
-
 
         pitchDetectorFillPos = 0;
         detectedFrequencies.clear();
@@ -88,7 +85,6 @@ private:
         adsrParams.sustain = 1.0f;
         adsrParams.release = static_cast<float>(sPs) / static_cast<float>(getSampleRate());
         adsr.setParameters(adsrParams);
-
     }
 
     // Pitch detection utilities
@@ -103,7 +99,6 @@ private:
         {
             return -1;
         }
-
         return static_cast<int>(std::round(12.0f * std::log2(frequency / 440.0f) + 69.0f));
     }
 
@@ -114,29 +109,33 @@ private:
 
     // Melody capture utilities
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
-    std::vector<int> formatMelody(const std::vector<int>& melody, bool isGeneratedMelody) const;
+//    std::vector<int> formatMelody(const std::vector<int>& melody, bool isGeneratedMelody) const;
 
     // Melody generation utilities
     std::vector<int> generatedMelody{60, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 };
 //    std::vector<int> generatedMelody = std::vector<int>(32, -1);
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
-    void detectKey(const std::vector<int>& melody);
+//    void detectKey(const std::vector<int>& melody);
     int detectedKey = 0;
-    void produceMelody(const std::vector<int>& melody, int key, int notes, int chaos);
-    void magnetize(std::vector<int>& melody, float probability) const;
+//    void produceMelody(const std::vector<int>& melody, int key, int notes, int chaos);
+//    void magnetize(std::vector<int>& melody, float probability) const;
 
     // Voice buffer creation utilities
-    juce::AudioBuffer<float> isolateBestNote();
-    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote)// maybe replace int targetNote with float interval
+//    juce::AudioBuffer<float> isolateBestNote();
+    
+//    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote)
+    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, float interval)
     {
-        if (input.getNumSamples() == 0 || baseNote < 0 || targetNote < 0)
+        if (input.getNumSamples() == 0 || baseNote < 0)
         {
             return juce::AudioBuffer<float>(input.getNumChannels(), 0);
         }
 
         // Calculate pitch ratio (semitones to frequency ratio)
 
-        float semitoneShift = static_cast<float>(targetNote - baseNote)/* + getDetuneFloat()*/;
+//        float semitoneShift = static_cast<float>(targetNote - baseNote)/* + getDetuneFloat()*/;
+
+        float semitoneShift = interval;
 
         float pitchRatio = std::pow(2.0f, semitoneShift / 12.0f);
 
