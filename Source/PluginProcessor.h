@@ -180,10 +180,26 @@ private:
 
         return output;
     }
-    inline void timeStretch(juce::AudioBuffer<float>& input, float lengthSeconds)
+    inline void timeStretch(juce::AudioBuffer<float>& input, int lengthInSamples)
     {
         // tile the input buffer using custom timing and pitch randomization
         // result will be lengthSeconds long
+
+
+
+        // apply 300-sample fade-in and fade-out
+
+        int numSamples = voiceBuffer.getNumSamples();
+        if (numSamples > 0)
+        {
+            int fadeSamples = 300;
+            fadeSamples = juce::jmin(fadeSamples, numSamples / 2);
+            for (int ch = 0; ch < voiceBuffer.getNumChannels(); ++ch)
+            {
+                voiceBuffer.applyGainRamp(ch, 0, fadeSamples, 0.0f, 1.0f);
+                voiceBuffer.applyGainRamp(ch, numSamples - fadeSamples, fadeSamples, 1.0f, 0.0f);
+            }
+        }
 
 
 
