@@ -397,8 +397,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             // DBG hi-res first and last sample indices
             DBG("Hi-res first and last sample indices: " + juce::String(hiResSampleFirstIdx) + ", " + juce::String(hiResSampleLastIdx));
 
-            // This might hide the best chunks so I'll give it more consideration
-
+            // DBG the detected note number of the isolated note
+            newVoiceNoteNumber.store(hiResIsolatedChunks[1]);
+            DBG("Detected note number: " + juce::String(newVoiceNoteNumber.load()));
             
 
             // Generate voiceBuffer
@@ -432,14 +433,14 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         if (synthesisBuffer.getNumSamples() > 0)
         {
             int numSamples = buffer.getNumSamples();
-            int voiceBufferSize = synthesisBuffer.getNumSamples();
+            int synthesisBufferSize = synthesisBuffer.getNumSamples();
             int readPos = synthesisBuffer_readPos.load();
 
             for (int i = 0; i < numSamples; ++i)
             {
                 int currentPos = readPos + i;
 
-                if (currentPos >= voiceBufferSize) break;
+                if (currentPos >= synthesisBufferSize) break;
 
                 float gain = useADSR.load() ? adsr.getNextSample() : 1.0f;
 

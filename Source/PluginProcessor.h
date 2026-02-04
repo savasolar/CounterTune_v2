@@ -129,12 +129,68 @@ private:
     juce::AudioBuffer<float> isolateBestNote();
     inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote)
     {
-        return input;
+        if (input.getNumSamples() == 0 || baseNote < 0 || targetNote < 0)
+        {
+            return juce::AudioBuffer<float>(input.getNumChannels(), 0);
+        }
+
+        // Calculate pitch ratio (semitones to frequency ratio)
+
+        float semitoneShift = static_cast<float>(targetNote - baseNote)/* + getDetuneFloat()*/;
+
+        float pitchRatio = std::pow(2.0f, semitoneShift / 12.0f);
+
+        int numChannels = input.getNumChannels();
+        int inputSamples = input.getNumSamples();
+        int outputSamples = static_cast<int>(inputSamples / pitchRatio + 0.5f);
+
+        if (outputSamples <= 0)
+        {
+            return juce::AudioBuffer<float>(numChannels, 0);
+        }
+
+        juce::AudioBuffer<float> output(numChannels, outputSamples);
+
+
+
+        // Linear interpolation resampling
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            const float* inputData = input.getReadPointer(ch);
+            float* outputData = output.getWritePointer(ch);
+
+            for (int i = 0; i < outputSamples; ++i)
+            {
+                float readPos = i * pitchRatio;
+                int readIndex = static_cast<int>(readPos);
+                float frac = readPos - readIndex;
+
+                if (readIndex < inputSamples - 1)
+                {
+                    // Linear interpolation between samples
+                    outputData[i] = inputData[readIndex] * (1.0f - frac) + inputData[readIndex + 1] * frac;
+                }
+                else if (readIndex < inputSamples)
+                {
+                    outputData[i] = inputData[readIndex];
+                }
+                else
+                {
+                    outputData[i] = 0.0f;
+                }
+            }
+        }
+
+        return output;
     }
     inline void timeStretch(juce::AudioBuffer<float>& input, float lengthSeconds)
     {
         // tile the input buffer using custom timing and pitch randomization
         // result will be lengthSeconds long
+
+
+
+        voiceNoteNumber.store(newVoiceNoteNumber);
 
         return;
     }
