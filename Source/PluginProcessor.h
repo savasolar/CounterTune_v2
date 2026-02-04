@@ -202,40 +202,31 @@ private:
 
         
         juce::AudioBuffer<float> textureBuffer;
-        int numTiles = 60;
+        int numTiles = 150;
         textureBuffer.setSize(input.getNumChannels(), lengthInSamples/*numTiles * input.getNumSamples()*/, false, true, true);
 
         // pitch randomization: +/- 1-10 cents
         // offset randomization: 8-16%
 
-        //// push input buffers side by side in textureBuffer
-        //for (int tile = 0; tile < numTiles; ++tile)
-        //{
-        //    int offset = tile * numSamples;
-        //    for (int ch = 0; ch < input.getNumChannels(); ++ch)
-        //    {
-        //        textureBuffer.copyFrom(ch, offset, input, ch, 0, numSamples);
-        //    }
-        //}
-
-
         // push input buffers side by side in textureBuffer with overlap and crossfade
         for (int tile = 0; tile < numTiles; ++tile)
         {
-            int overlapSamples = input.getNumSamples() - static_cast<int>(input.getNumSamples() * 0.16);
-            int offset = tile * (numSamples - overlapSamples);
+            juce::AudioBuffer<float> pitchShiftedTile = pitchShiftByResampling(input, voiceNoteNumber.load(), 2.0);
+            int pitchShiftedNumSamples = pitchShiftedTile.getNumSamples();
+            int overlapSamples = pitchShiftedTile.getNumSamples() - static_cast<int>(pitchShiftedTile.getNumSamples() * 0.16);
+            int offset = tile * (pitchShiftedNumSamples - overlapSamples);
 
-            for (int ch = 0; ch < input.getNumChannels(); ++ch)
+            for (int ch = 0; ch < pitchShiftedTile.getNumChannels(); ++ch)
             {
                 if (tile == 0)
                 {
                     // First tile: copy entirely
-                    textureBuffer.copyFrom(ch, offset, input, ch, 0, numSamples);
+                    textureBuffer.copyFrom(ch, offset, pitchShiftedTile, ch, 0, pitchShiftedNumSamples);
                 }
                 else
                 {
                     // Subsequent tiles: copy with crossfade in overlap region
-                    const float* inputData = input.getReadPointer(ch);
+                    const float* inputData = pitchShiftedTile.getReadPointer(ch);
                     float* textureData = textureBuffer.getWritePointer(ch);
 
                     // Crossfade in the overlap region
@@ -249,7 +240,7 @@ private:
                     }
 
                     // Copy the rest of the tile (non-overlapping part)
-                    textureBuffer.copyFrom(ch, offset + overlapSamples, input, ch, overlapSamples, numSamples - overlapSamples);
+                    textureBuffer.copyFrom(ch, offset + overlapSamples, pitchShiftedTile, ch, overlapSamples, pitchShiftedNumSamples - overlapSamples);
                 }
             }
         }
