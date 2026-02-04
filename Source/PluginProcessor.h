@@ -200,19 +200,61 @@ private:
             }
         }
 
-        // Until it is >= lengthInSamples, create "tile" copies of the input buffer, random pitch shifted +/- 1-10% (and thus given a modified sample length as well), each consecutive tile slightly overlapping the previous tile at a randomized overlap size between 0.0625 and 0.125 of the previous tile's number of samples.
-
         
         juce::AudioBuffer<float> textureBuffer;
-        textureBuffer.setSize(input.getNumChannels(), input.getNumSamples() * 2, false, true, true);
+        int numTiles = 5;
+        textureBuffer.setSize(input.getNumChannels(), /*lengthInSamples*/numTiles * input.getNumSamples(), false, true, true);
 
-        // push 2 input buffers side by side in textureBuffer
-        // ...
-        for (int ch = 0; ch < input.getNumChannels(); ++ch)
+        // pitch randomization: +/- 1-10 cents
+        // offset randomization: 8-16%
+
+        //// push input buffers side by side in textureBuffer
+        //for (int tile = 0; tile < numTiles; ++tile)
+        //{
+        //    int offset = tile * numSamples;
+        //    for (int ch = 0; ch < input.getNumChannels(); ++ch)
+        //    {
+        //        textureBuffer.copyFrom(ch, offset, input, ch, 0, numSamples);
+        //    }
+        //}
+
+
+        // push input buffers side by side in textureBuffer with overlap and crossfade
+        for (int tile = 0; tile < numTiles; ++tile)
         {
-            textureBuffer.copyFrom(ch, 0, input, ch, 0, numSamples);
-            textureBuffer.copyFrom(ch, numSamples, input, ch, 0, numSamples);
+            int overlapSamples = input.getNumSamples() - static_cast<int>(input.getNumSamples() * 0.16);
+            int offset = tile * (numSamples - overlapSamples);
+
+            for (int ch = 0; ch < input.getNumChannels(); ++ch)
+            {
+                if (tile == 0)
+                {
+                    // First tile: copy entirely
+                    textureBuffer.copyFrom(ch, offset, input, ch, 0, numSamples);
+                }
+                else
+                {
+                    // Subsequent tiles: copy with crossfade in overlap region
+                    const float* inputData = input.getReadPointer(ch);
+                    float* textureData = textureBuffer.getWritePointer(ch);
+
+                    // Crossfade in the overlap region
+                    for (int i = 0; i < overlapSamples; ++i)
+                    {
+                        float fadeOut = 1.0f - (float)i / (float)overlapSamples; // Previous tile fades out
+                        float fadeIn = (float)i / (float)overlapSamples;          // New tile fades in
+
+                        int texturePos = offset + i;
+                        textureData[texturePos] = textureData[texturePos] * fadeOut + inputData[i] * fadeIn;
+                    }
+
+                    // Copy the rest of the tile (non-overlapping part)
+                    textureBuffer.copyFrom(ch, offset + overlapSamples, input, ch, overlapSamples, numSamples - overlapSamples);
+                }
+            }
         }
+
+
 
         
 
