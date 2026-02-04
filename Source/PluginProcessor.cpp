@@ -414,6 +414,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
             DBG(juce::String(voiceBuffer.getNumSamples()));
 
+            timeStretch(voiceBuffer, static_cast<float>(32 * sPs) / getSampleRate());
 
 
             resetTiming();
