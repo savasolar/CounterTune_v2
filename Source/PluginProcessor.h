@@ -127,7 +127,7 @@ private:
 
     // Voice buffer creation utilities
     juce::AudioBuffer<float> isolateBestNote();
-    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote)
+    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote)// maybe replace int targetNote with float interval
     {
         if (input.getNumSamples() == 0 || baseNote < 0 || targetNote < 0)
         {
@@ -150,8 +150,6 @@ private:
         }
 
         juce::AudioBuffer<float> output(numChannels, outputSamples);
-
-
 
         // Linear interpolation resampling
         for (int ch = 0; ch < numChannels; ++ch)
