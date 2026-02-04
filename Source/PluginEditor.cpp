@@ -9,7 +9,9 @@ CounterTune_v2AudioProcessorEditor::CounterTune_v2AudioProcessorEditor (CounterT
     setSize (500, 490);
 
     addAndMakeVisible(waveform);
-    waveform.setBounds(60, 0, 440, 440);
+    waveform.setBounds(5, 0, 490, 490);
+
+    startTimerHz(30);
 }
 
 CounterTune_v2AudioProcessorEditor::~CounterTune_v2AudioProcessorEditor()
@@ -18,7 +20,7 @@ CounterTune_v2AudioProcessorEditor::~CounterTune_v2AudioProcessorEditor()
 
 void CounterTune_v2AudioProcessorEditor::timerCallback()
 {
-//        waveform.setAudioBuffer(&audioProcessor.waveform, audioProcessor.waveform.getNumSamples());
+    waveform.setAudioBuffer(&audioProcessor.waveform, audioProcessor.waveform.getNumSamples());
 }
 
 void CounterTune_v2AudioProcessorEditor::paint (juce::Graphics& g)

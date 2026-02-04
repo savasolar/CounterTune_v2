@@ -203,12 +203,20 @@ private:
         // Until it is >= lengthInSamples, create "tile" copies of the input buffer, random pitch shifted +/- 1-10% (and thus given a modified sample length as well), each consecutive tile slightly overlapping the previous tile at a randomized overlap size between 0.0625 and 0.125 of the previous tile's number of samples.
 
         
+        juce::AudioBuffer<float> textureBuffer;
+        textureBuffer.setSize(input.getNumChannels(), input.getNumSamples() * 2, false, true, true);
 
-
+        // push 2 input buffers side by side in textureBuffer
+        // ...
+        for (int ch = 0; ch < input.getNumChannels(); ++ch)
+        {
+            textureBuffer.copyFrom(ch, 0, input, ch, 0, numSamples);
+            textureBuffer.copyFrom(ch, numSamples, input, ch, 0, numSamples);
+        }
 
         
 
-
+        input = textureBuffer;
 
         waveform = input;
 
