@@ -202,8 +202,8 @@ private:
 
         
         juce::AudioBuffer<float> textureBuffer;
-        int numTiles = 5;
-        textureBuffer.setSize(input.getNumChannels(), /*lengthInSamples*/numTiles * input.getNumSamples(), false, true, true);
+        int numTiles = 60;
+        textureBuffer.setSize(input.getNumChannels(), lengthInSamples/*numTiles * input.getNumSamples()*/, false, true, true);
 
         // pitch randomization: +/- 1-10 cents
         // offset randomization: 8-16%
