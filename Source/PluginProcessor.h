@@ -36,6 +36,8 @@ public:
 
     juce::AudioProcessorValueTreeState parameters;
 
+    juce::AudioBuffer<float> waveform;
+
 private:
 
     // Timing utilities
@@ -180,30 +182,36 @@ private:
 
         return output;
     }
-    inline void timeStretch(juce::AudioBuffer<float>& input, int lengthInSamples)
+    inline void textureSynthesis(juce::AudioBuffer<float>& input, int lengthInSamples)
     {
         // tile the input buffer using custom timing and pitch randomization
-        // result will be lengthSeconds long
 
+        // apply fade-in and fade-out
 
-
-        // apply 300-sample fade-in and fade-out
-
-        int numSamples = voiceBuffer.getNumSamples();
+        int numSamples = input.getNumSamples();
         if (numSamples > 0)
         {
-            int fadeSamples = 300;
+            int fadeSamples = static_cast<int>(numSamples * 0.31f);
             fadeSamples = juce::jmin(fadeSamples, numSamples / 2);
-            for (int ch = 0; ch < voiceBuffer.getNumChannels(); ++ch)
+            for (int ch = 0; ch < input.getNumChannels(); ++ch)
             {
-                voiceBuffer.applyGainRamp(ch, 0, fadeSamples, 0.0f, 1.0f);
-                voiceBuffer.applyGainRamp(ch, numSamples - fadeSamples, fadeSamples, 1.0f, 0.0f);
+                input.applyGainRamp(ch, 0, fadeSamples, 0.0f, 1.0f);
+                input.applyGainRamp(ch, numSamples - fadeSamples, fadeSamples, 1.0f, 0.0f);
             }
         }
 
+        // Until it is >= lengthInSamples, create "tile" copies of the input buffer, random pitch shifted +/- 1-10% (and thus given a modified sample length as well), each consecutive tile slightly overlapping the previous tile at a randomized overlap size between 0.0625 and 0.125 of the previous tile's number of samples.
+
+        
 
 
-        voiceNoteNumber.store(newVoiceNoteNumber);
+
+        
+
+
+
+        waveform = input;
+
 
         return;
     }

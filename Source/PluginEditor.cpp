@@ -1,40 +1,32 @@
-/*
-  ==============================================================================
-
-    This file contains the basic framework code for a JUCE plugin editor.
-
-  ==============================================================================
-*/
+// PluginEditor.cpp
 
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
-//==============================================================================
 CounterTune_v2AudioProcessorEditor::CounterTune_v2AudioProcessorEditor (CounterTune_v2AudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    // Make sure that before the constructor has finished, you've set the
-    // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    setSize (500, 490);
+
+    addAndMakeVisible(waveform);
+    waveform.setBounds(60, 0, 440, 440);
 }
 
 CounterTune_v2AudioProcessorEditor::~CounterTune_v2AudioProcessorEditor()
 {
 }
 
-//==============================================================================
+void CounterTune_v2AudioProcessorEditor::timerCallback()
+{
+//        waveform.setAudioBuffer(&audioProcessor.waveform, audioProcessor.waveform.getNumSamples());
+}
+
 void CounterTune_v2AudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (juce::ResizableWindow::backgroundColourId));
 
-    g.setColour (juce::Colours::white);
-    g.setFont (juce::FontOptions (15.0f));
-    g.drawFittedText ("Hello World!", getLocalBounds(), juce::Justification::centred, 1);
 }
 
 void CounterTune_v2AudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
+
 }

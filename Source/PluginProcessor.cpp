@@ -21,6 +21,8 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 {
     dywapitch_inittracking(&pitchTracker);
 
+    waveform.setSize(2, 1); // dummy initial size
+
     DBG("check 123");
 }
 
@@ -402,13 +404,11 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             // DBG the detected note number of the isolated note
             newVoiceNoteNumber.store(hiResIsolatedChunks[1]);
             DBG("Detected note number: " + juce::String(newVoiceNoteNumber.load()));
-            
+            voiceNoteNumber.store(newVoiceNoteNumber);
 
             // Generate voiceBuffer
 
             // To create voiceBuffer, go to hi-res first idx of inputAudioBuffer and accumulate hiResNumSamples, and copy it to voiceBuffer
-
-
 
             voiceBuffer.setSize(inputAudioBuffer.getNumChannels(), hiResNumSamples, false, true, true);
             for (int ch = 0; ch < inputAudioBuffer.getNumChannels(); ++ch)
@@ -417,8 +417,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
             DBG(juce::String(voiceBuffer.getNumSamples()));
 
-            timeStretch(voiceBuffer, 32 * sPs);
-
+            textureSynthesis(voiceBuffer, 32 * sPs);
+            
+            
 
             resetTiming();
         }
