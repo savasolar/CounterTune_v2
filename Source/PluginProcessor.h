@@ -210,6 +210,8 @@ private:
 
         juce::Random& rnd = juce::Random::getSystemRandom();
 
+        int currentOffset = 0;
+
         // push input buffers side by side in textureBuffer with overlap and crossfade
         for (int tile = 0; tile < numTiles; ++tile)
         {
@@ -217,12 +219,13 @@ private:
 //            float randomOverlap = 0.08; // make this a random number between 0.08 and 0.16 in 0.01 increments
 
             float randomPitch = rnd.nextInt(21) * 0.01f - 0.10f;  // Added: Random per tile (-0.10 to 0.10 in 0.01 increments)
-            float randomOverlap = 0.16f;//(rnd.nextInt(9) + 8) * 0.01f;  // Added: Random per tile (0.08 to 0.16 in 0.01 increments)
+            float randomOverlap = (rnd.nextInt(9) + 8) * 0.01f;  // Added: Random per tile (0.08 to 0.16 in 0.01 increments)
 
             juce::AudioBuffer<float> pitchShiftedTile = pitchShiftByResampling(input, voiceNoteNumber.load(), randomPitch);
             int pitchShiftedNumSamples = pitchShiftedTile.getNumSamples();
             int overlapSamples = pitchShiftedTile.getNumSamples() - static_cast<int>(pitchShiftedTile.getNumSamples() * randomOverlap);
-            int offset = tile * (pitchShiftedNumSamples - overlapSamples);
+            //int offset = tile * (pitchShiftedNumSamples - overlapSamples);
+            int offset = currentOffset;
 
             for (int ch = 0; ch < pitchShiftedTile.getNumChannels(); ++ch)
             {
@@ -251,6 +254,9 @@ private:
                     textureBuffer.copyFrom(ch, offset + overlapSamples, pitchShiftedTile, ch, overlapSamples, pitchShiftedNumSamples - overlapSamples);
                 }
             }
+
+            currentOffset += (pitchShiftedNumSamples - overlapSamples);
+
 
 
             // How to handle overflow where data being given to textureBuffer is bigger than lengthInSamples?
