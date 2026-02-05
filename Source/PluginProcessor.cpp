@@ -23,7 +23,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 
     waveform.setSize(2, 1); // dummy initial size
 
-    DBG("check 123");
+//    DBG("check 123");
 }
 
 CounterTune_v2AudioProcessor::~CounterTune_v2AudioProcessor()
@@ -304,7 +304,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             juce::StringArray nnArray;
             nnArray.ensureStorageAllocated(static_cast<int>(detectedNoteNumbers.size()));
             for (float note : detectedNoteNumbers) { nnArray.add(juce::String(note)); }
-            DBG("Detected Notes (" + juce::String(detectedNoteNumbers.size()) + " values): " + nnArray.joinIntoString(", "));
+           // DBG("Detected Notes (" + juce::String(detectedNoteNumbers.size()) + " values): " + nnArray.joinIntoString(", "));
 
             // Find the first occurrence of over 5 consecutive note numbers in detectedNoteNumbers, put it in lowResIsolatedChunks, and print lowResIsolatedChunks.
             std::vector<int> lowResIsolatedChunks;
@@ -327,14 +327,14 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 }
             }
 
-            DBG("Low-res best chunks:");
+          //  DBG("Low-res best chunks:");
             juce::StringArray lrIsoChkArray;
             lrIsoChkArray.ensureStorageAllocated(static_cast<int>(lowResIsolatedChunks.size()));
             for (float note : lowResIsolatedChunks) { lrIsoChkArray.add(juce::String(note)); }
-            DBG(lrIsoChkArray.joinIntoString(", "));
+          //  DBG(lrIsoChkArray.joinIntoString(", "));
 
-            DBG("First and last low-res indices:");
-            DBG(juce::String(lowResChunkFirstIdx) + ", " + juce::String(lowResChunkLastIdx));
+           // DBG("First and last low-res indices:");
+          //  DBG(juce::String(lowResChunkFirstIdx) + ", " + juce::String(lowResChunkLastIdx));
 
             // place the first 5 indices of lowResIsolatedChunks into midResIsolatedChunks
             std::vector<int> midResIsolatedChunks;
@@ -346,14 +346,14 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 midResIsolatedChunks.assign(lowResIsolatedChunks.begin(), lowResIsolatedChunks.begin() + 5);
             }
 
-            DBG("Mid-res best chunks:");
+           // DBG("Mid-res best chunks:");
             juce::StringArray mrIsoChkArray;
             mrIsoChkArray.ensureStorageAllocated(static_cast<int>(midResIsolatedChunks.size()));
             for (float note : midResIsolatedChunks) { mrIsoChkArray.add(juce::String(note)); }
-            DBG(mrIsoChkArray.joinIntoString(", "));
+           // DBG(mrIsoChkArray.joinIntoString(", "));
 
-            DBG("First and last mid-res indices:");
-            DBG(juce::String(midResChunkFirstIdx) + ", " + juce::String(midResChunkLastIdx));
+           // DBG("First and last mid-res indices:");
+//            DBG(juce::String(midResChunkFirstIdx) + ", " + juce::String(midResChunkLastIdx));
 
             // populate hiResIsolatedChunks with the middle 3 indices of midResIsolatedChunks
             std::vector<int> hiResIsolatedChunks;
@@ -362,48 +362,48 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
             hiResIsolatedChunks.assign(midResIsolatedChunks.begin() + 1, midResIsolatedChunks.begin() + 4);
 
-            DBG("Hi-res best chunks:");
+         //   DBG("Hi-res best chunks:");
             juce::StringArray hrIsoChkArray;
             hrIsoChkArray.ensureStorageAllocated(static_cast<int>(hiResIsolatedChunks.size()));
             for (float note : hiResIsolatedChunks) { hrIsoChkArray.add(juce::String(note)); }
-            DBG(hrIsoChkArray.joinIntoString(", "));
+           // DBG(hrIsoChkArray.joinIntoString(", "));
 
-            DBG("First and last hi-res indices:");
-            DBG(juce::String(hiResChunkFirstIdx) + ", " + juce::String(hiResChunkLastIdx));
+         //   DBG("First and last hi-res indices:");
+         //   DBG(juce::String(hiResChunkFirstIdx) + ", " + juce::String(hiResChunkLastIdx));
 
             // DBG number of samples in inputAudioBuffer
-            DBG("Audio buffer size:" + juce::String(inputAudioBuffer.getNumSamples()));
+         //   DBG("Audio buffer size:" + juce::String(inputAudioBuffer.getNumSamples()));
 
             // DBG number of samples in low-resolution isolated audio
             int lowResSampleFirstIdx = lowResChunkFirstIdx * 1024;
             int lowResSampleLastIdx = lowResChunkLastIdx * 1024;
             int lowResNumSamples = lowResSampleLastIdx - lowResSampleFirstIdx + 1024;
-            DBG("Low res best samples amount: " + juce::String(lowResNumSamples));
+         //   DBG("Low res best samples amount: " + juce::String(lowResNumSamples));
 
             // DBG low-res first and last sample indices
-            DBG("Low-res first and last sample indices: " + juce::String(lowResSampleFirstIdx) + ", " + juce::String(lowResSampleLastIdx));
+         //   DBG("Low-res first and last sample indices: " + juce::String(lowResSampleFirstIdx) + ", " + juce::String(lowResSampleLastIdx));
 
             // DBG number of samples in mid-resolution isolated audio
             int midResSampleFirstIdx = midResChunkFirstIdx * 1024;
             int midResSampleLastIdx = midResChunkLastIdx * 1024;
             int midResNumSamples = midResSampleLastIdx - midResSampleFirstIdx + 1024;
-            DBG("Mid res best samples amount: " + juce::String(midResNumSamples));
+        //    DBG("Mid res best samples amount: " + juce::String(midResNumSamples));
 
             // DBG mid-res first and last sample indices
-            DBG("Mid-res first and last sample indices: " + juce::String(midResSampleFirstIdx) + ", " + juce::String(midResSampleLastIdx));
+       //     DBG("Mid-res first and last sample indices: " + juce::String(midResSampleFirstIdx) + ", " + juce::String(midResSampleLastIdx));
 
             // DBG number of samples in hi-resolution isolated audio
             int hiResSampleFirstIdx = hiResChunkFirstIdx * 1024;
             int hiResSampleLastIdx = hiResChunkLastIdx * 1024;
             int hiResNumSamples = hiResSampleLastIdx - hiResSampleFirstIdx + 1024;
-            DBG("Hi res best samples amount: " + juce::String(hiResNumSamples));
+         //   DBG("Hi res best samples amount: " + juce::String(hiResNumSamples));
 
             // DBG hi-res first and last sample indices
-            DBG("Hi-res first and last sample indices: " + juce::String(hiResSampleFirstIdx) + ", " + juce::String(hiResSampleLastIdx));
+        //    DBG("Hi-res first and last sample indices: " + juce::String(hiResSampleFirstIdx) + ", " + juce::String(hiResSampleLastIdx));
 
             // DBG the detected note number of the isolated note
             newVoiceNoteNumber.store(hiResIsolatedChunks[1]);
-            DBG("Detected note number: " + juce::String(newVoiceNoteNumber.load()));
+       //     DBG("Detected note number: " + juce::String(newVoiceNoteNumber.load()));
             voiceNoteNumber.store(newVoiceNoteNumber);
 
             // Generate voiceBuffer
@@ -415,7 +415,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             {
                 voiceBuffer.copyFrom(ch, 0, inputAudioBuffer, ch, hiResSampleFirstIdx, hiResNumSamples);
             }
-            DBG(juce::String(voiceBuffer.getNumSamples()));
+       //     DBG(juce::String(voiceBuffer.getNumSamples()));
 
             textureSynthesis(voiceBuffer, 32 * sPs);
             

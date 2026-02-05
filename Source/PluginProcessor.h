@@ -202,7 +202,8 @@ private:
 
         
         juce::AudioBuffer<float> textureBuffer;
-        int numTiles = 200;
+        int numTiles = static_cast<int>(lengthInSamples / input.getNumSamples() * 11.5);//200;
+        DBG("numTiles: " + juce::String(numTiles));
         textureBuffer.setSize(input.getNumChannels(), lengthInSamples/*numTiles * input.getNumSamples()*/, false, true, true);
 
         // pitch randomization: +/- 1-10 cents
@@ -227,12 +228,59 @@ private:
             //int offset = tile * (pitchShiftedNumSamples - overlapSamples);
             int offset = currentOffset;
 
+            //for (int ch = 0; ch < pitchShiftedTile.getNumChannels(); ++ch)
+            //{
+            //    if (tile == 0)
+            //    {
+            //        // First tile: copy entirely
+            //        textureBuffer.copyFrom(ch, offset, pitchShiftedTile, ch, 0, pitchShiftedNumSamples);
+            //    }
+            //    else
+            //    {
+            //        // Subsequent tiles: copy with crossfade in overlap region
+            //        const float* inputData = pitchShiftedTile.getReadPointer(ch);
+            //        float* textureData = textureBuffer.getWritePointer(ch);
+
+            //        // Crossfade in the overlap region
+            //        for (int i = 0; i < overlapSamples; ++i)
+            //        {
+            //            float fadeOut = 1.0f - (float)i / (float)overlapSamples; // Previous tile fades out
+            //            float fadeIn = (float)i / (float)overlapSamples;          // New tile fades in
+
+            //            int texturePos = offset + i;
+            //            textureData[texturePos] = textureData[texturePos] * fadeOut + inputData[i] * fadeIn;
+            //        }
+
+            //        // Copy the rest of the tile (non-overlapping part)
+            //        textureBuffer.copyFrom(ch, offset + overlapSamples, pitchShiftedTile, ch, overlapSamples, pitchShiftedNumSamples - overlapSamples);
+            //    }
+            //}
+
+            //currentOffset += (pitchShiftedNumSamples - overlapSamples);
+
+
+
+            // How to handle overflow where data being given to textureBuffer is bigger than lengthInSamples?
+
+
+
+
+            // NEW: Calculate how much of this tile we can actually copy without overflowing
+            int samplesToCopy = juce::jmin(pitchShiftedNumSamples, lengthInSamples - currentOffset);
+            if (samplesToCopy <= 0) // No room left—skip this tile and stop early
+            {
+                break;
+            }
+
+            // NEW: For crossfading, limit the overlap to the available space (relevant if truncating mid-overlap)
+            int actualOverlapSamples = juce::jmin(overlapSamples, samplesToCopy);
+
             for (int ch = 0; ch < pitchShiftedTile.getNumChannels(); ++ch)
             {
                 if (tile == 0)
                 {
-                    // First tile: copy entirely
-                    textureBuffer.copyFrom(ch, offset, pitchShiftedTile, ch, 0, pitchShiftedNumSamples);
+                    // First tile: copy entirely (or truncated if needed)
+                    textureBuffer.copyFrom(ch, offset, pitchShiftedTile, ch, 0, samplesToCopy);
                 }
                 else
                 {
@@ -240,26 +288,38 @@ private:
                     const float* inputData = pitchShiftedTile.getReadPointer(ch);
                     float* textureData = textureBuffer.getWritePointer(ch);
 
-                    // Crossfade in the overlap region
-                    for (int i = 0; i < overlapSamples; ++i)
+                    // Crossfade in the overlap region (limited by available space)
+                    for (int i = 0; i < actualOverlapSamples; ++i)
                     {
-                        float fadeOut = 1.0f - (float)i / (float)overlapSamples; // Previous tile fades out
-                        float fadeIn = (float)i / (float)overlapSamples;          // New tile fades in
+                        float fadeOut = 1.0f - (float)i / (float)actualOverlapSamples; // Previous tile fades out
+                        float fadeIn = (float)i / (float)actualOverlapSamples;          // New tile fades in
 
                         int texturePos = offset + i;
                         textureData[texturePos] = textureData[texturePos] * fadeOut + inputData[i] * fadeIn;
                     }
 
-                    // Copy the rest of the tile (non-overlapping part)
-                    textureBuffer.copyFrom(ch, offset + overlapSamples, pitchShiftedTile, ch, overlapSamples, pitchShiftedNumSamples - overlapSamples);
+                    // Copy the rest of the tile (non-overlapping part), if any remains after truncation
+                    int nonOverlapSamples = samplesToCopy - actualOverlapSamples;
+                    if (nonOverlapSamples > 0)
+                    {
+                        textureBuffer.copyFrom(ch, offset + actualOverlapSamples, pitchShiftedTile, ch, actualOverlapSamples, nonOverlapSamples);
+                    }
+                }
+            }
+
+            // NEW: If this tile was truncated, apply a quick fade-out to the end of the buffer to avoid abrupt cutoff
+            if (samplesToCopy < pitchShiftedNumSamples)
+            {
+                int fadeOutSamples = juce::jmin(128, samplesToCopy / 2); // Arbitrary small fade (adjust as needed)
+                for (int ch = 0; ch < textureBuffer.getNumChannels(); ++ch)
+                {
+                    textureBuffer.applyGainRamp(ch, lengthInSamples - fadeOutSamples, fadeOutSamples, 1.0f, 0.0f);
                 }
             }
 
             currentOffset += (pitchShiftedNumSamples - overlapSamples);
 
 
-
-            // How to handle overflow where data being given to textureBuffer is bigger than lengthInSamples?
 
         }
 
