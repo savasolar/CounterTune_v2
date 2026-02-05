@@ -114,7 +114,7 @@ private:
 //    std::vector<int> formatMelody(const std::vector<int>& melody, bool isGeneratedMelody) const;
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{60, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 , -2, -2, -2, -2 };
+    std::vector<int> generatedMelody{59, -2, 66, -2, 66, -2, 66, -2, 66, -2, 61, -2 , 61, -2, 61, -2 , 61, -2, 66, -2 , 66, -2, 66, -2 , 66, -2, 66, -2 , 66, -2, 66, -2 };
 //    std::vector<int> generatedMelody = std::vector<int>(32, -1);
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
 //    void detectKey(const std::vector<int>& melody);
@@ -200,8 +200,21 @@ private:
             }
         }
 
-        //waveform = input;
-        // stylize waveform here?
+        waveform = input;
+        // stylize waveform here
+        // Normalize the waveform to peak at 1.0
+        float peak = 0.0f;
+        for (int ch = 0; ch < waveform.getNumChannels(); ++ch)
+        {
+            peak = std::max(peak, waveform.getMagnitude(ch, 0, waveform.getNumSamples()));
+        }
+
+        if (peak > 0.0f)
+        {
+            float gain = 1.0f / peak;
+            waveform.applyGain(gain);
+        }
+
 
         
         juce::AudioBuffer<float> textureBuffer;
@@ -284,7 +297,7 @@ private:
 
         }
 
-        waveform = textureBuffer;
+        //waveform = textureBuffer;
 
         input = textureBuffer;
     }
