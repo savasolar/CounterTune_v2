@@ -15,7 +15,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
                        ),
         parameters(*this, nullptr, "Parameters",
         {
-            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.5f)
+            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 1.0f)
         })//,
 //        rnd(juce::Random::getSystemRandom())
 #endif
@@ -260,7 +260,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                         // generate randomPitch
 
 
-                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), static_cast<float>(playbackNote - voiceNoteNumber.load()));
+                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
                         randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
 
                         synthesisBuffer_readPos.store(0);
@@ -434,7 +434,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                 randomPitch = juce::Random::getSystemRandom().nextInt(21) * 0.01f - 0.10f;
                 //newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), randomPitch);
-                newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), static_cast<float>(playbackNote - voiceNoteNumber.load()) + randomPitch);
+                newTile = pitchShiftByResampling(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomPitch);
 
                 // Calculate overlap and non-overlap first
                 int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
