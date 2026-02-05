@@ -202,18 +202,26 @@ private:
 
         
         juce::AudioBuffer<float> textureBuffer;
-        int numTiles = 150;
+        int numTiles = 200;
         textureBuffer.setSize(input.getNumChannels(), lengthInSamples/*numTiles * input.getNumSamples()*/, false, true, true);
 
         // pitch randomization: +/- 1-10 cents
         // offset randomization: 8-16%
 
+        juce::Random& rnd = juce::Random::getSystemRandom();
+
         // push input buffers side by side in textureBuffer with overlap and crossfade
         for (int tile = 0; tile < numTiles; ++tile)
         {
-            juce::AudioBuffer<float> pitchShiftedTile = pitchShiftByResampling(input, voiceNoteNumber.load(), 2.0);
+//            float randomPitch = 0.1; // make this a random number between -0.10 and 0.10 in 0.01 increments
+//            float randomOverlap = 0.08; // make this a random number between 0.08 and 0.16 in 0.01 increments
+
+            float randomPitch = rnd.nextInt(21) * 0.01f - 0.10f;  // Added: Random per tile (-0.10 to 0.10 in 0.01 increments)
+            float randomOverlap = 0.16f;//(rnd.nextInt(9) + 8) * 0.01f;  // Added: Random per tile (0.08 to 0.16 in 0.01 increments)
+
+            juce::AudioBuffer<float> pitchShiftedTile = pitchShiftByResampling(input, voiceNoteNumber.load(), randomPitch);
             int pitchShiftedNumSamples = pitchShiftedTile.getNumSamples();
-            int overlapSamples = pitchShiftedTile.getNumSamples() - static_cast<int>(pitchShiftedTile.getNumSamples() * 0.16);
+            int overlapSamples = pitchShiftedTile.getNumSamples() - static_cast<int>(pitchShiftedTile.getNumSamples() * randomOverlap);
             int offset = tile * (pitchShiftedNumSamples - overlapSamples);
 
             for (int ch = 0; ch < pitchShiftedTile.getNumChannels(); ++ch)
@@ -243,6 +251,10 @@ private:
                     textureBuffer.copyFrom(ch, offset + overlapSamples, pitchShiftedTile, ch, overlapSamples, pitchShiftedNumSamples - overlapSamples);
                 }
             }
+
+
+            // How to handle overflow where data being given to textureBuffer is bigger than lengthInSamples?
+
         }
 
 
