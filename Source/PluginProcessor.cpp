@@ -439,6 +439,12 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             int synthesisBufferSize = synthesisBuffer.getNumSamples();
             int readPos = synthesisBuffer_readPos.load();
 
+
+            // <TRY WITH/WITHOUT>
+            int fadeInSamples = 128;  // short safety fadein?
+            // </TRY WITH/WITHOUT>
+
+
             for (int i = 0; i < numSamples; ++i)
             {
                 int currentPos = readPos + i;
@@ -446,6 +452,16 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 if (currentPos >= synthesisBufferSize) break;
 
                 float gain = useADSR.load() ? adsr.getNextSample() : 1.0f;
+
+
+                // <TRY WITH/WITHOUT>
+                // Apply short fade-in if at the very start of the buffer (smooths any boundary jump)
+                if (currentPos < fadeInSamples)
+                {
+                    gain *= static_cast<float>(currentPos) / static_cast<float>(fadeInSamples);
+                }
+                // </TRY WITH/WITHOUT>
+
 
                 for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
                 {
