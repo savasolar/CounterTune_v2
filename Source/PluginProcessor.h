@@ -113,7 +113,7 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{60, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
+    std::vector<int> generatedMelody{61, -2, -2, -2, 63, -2, -2, -2, 65, -2, -2, -2, 66, -2, -2, -2, 68, -2, -2, -2, 70, -2, -2, -2, 72, -2, -2, -2, 73, -2, -2, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     
@@ -170,7 +170,6 @@ private:
         return output;
     }
 
-
     inline void bellCurve(juce::AudioBuffer<float>& input)
     {
         int numSamples = input.getNumSamples();
@@ -186,129 +185,10 @@ private:
         }
     }
 
-
-    inline void textureSynthesis(juce::AudioBuffer<float>& input, int lengthInSamples)
-    {
-        // apply fade-in and fade-out
-
-        int numSamples = input.getNumSamples();
-        if (numSamples > 0)
-        {
-            int fadeSamples = static_cast<int>(numSamples * 0.31f);
-            fadeSamples = juce::jmin(fadeSamples, numSamples / 2);
-            for (int ch = 0; ch < input.getNumChannels(); ++ch)
-            {
-                input.applyGainRamp(ch, 0, fadeSamples, 0.0f, 1.0f);
-                input.applyGainRamp(ch, numSamples - fadeSamples, fadeSamples, 1.0f, 0.0f);
-            }
-        }
-
-        waveform = input;
-        // stylize waveform here...
-        // Normalize the waveform to peak at 1.0
-        float peak = 0.0f;
-        for (int ch = 0; ch < waveform.getNumChannels(); ++ch)
-        {
-            peak = std::max(peak, waveform.getMagnitude(ch, 0, waveform.getNumSamples()));
-        }
-
-        if (peak > 0.0f)
-        {
-            float gain = 1.0f / peak;
-            waveform.applyGain(gain);
-        }
-        
-        juce::AudioBuffer<float> textureBuffer;
-        int numTiles = static_cast<int>(lengthInSamples / input.getNumSamples() * 20);//200;
-        DBG("numTiles: " + juce::String(numTiles));
-        textureBuffer.setSize(input.getNumChannels(), lengthInSamples, false, true, true);
-
-        // pitch randomization: +/- 1-10 cents (-0.10 to 0.10, 0.01 increments)
-        // offset randomization: 8-16% (0.08 to 0.16, 0.01 increments)
-
-//        juce::Random& rnd = juce::Random::getSystemRandom();
-
-        int currentOffset = 0;
-
-        // push input buffers side by side in textureBuffer with pitch/overlap randomization and crossfade
-        for (int tile = 0; tile < numTiles; ++tile)
-        {
-            float randomPitch = 0.0;// rnd.nextInt(21) * 0.01f - 0.10f;
-            float randomOverlap = 1;// (rnd.nextInt(9) + 8) * 0.01f;
-
-            juce::AudioBuffer<float> pitchShiftedTile = pitchShiftByResampling(input, voiceNoteNumber.load(), randomPitch);
-            int pitchShiftedNumSamples = pitchShiftedTile.getNumSamples();
-            int overlapSamples = pitchShiftedTile.getNumSamples() - static_cast<int>(pitchShiftedTile.getNumSamples() * randomOverlap);
-            int offset = currentOffset;
-
-            // Calculate how much of this tile we can actually copy without overflowing
-            int samplesToCopy = juce::jmin(pitchShiftedNumSamples, lengthInSamples - currentOffset);
-            if (samplesToCopy <= 0) // No room left—skip this tile and stop early
-            {
-                break;
-            }
-
-            // For crossfading, limit the overlap to the available space (relevant if truncating mid-overlap)
-            int actualOverlapSamples = juce::jmin(overlapSamples, samplesToCopy);
-
-            for (int ch = 0; ch < pitchShiftedTile.getNumChannels(); ++ch)
-            {
-                if (tile == 0)
-                {
-                    // First tile: copy entirely (or truncated if needed)
-                    textureBuffer.copyFrom(ch, offset, pitchShiftedTile, ch, 0, samplesToCopy);
-                }
-                else
-                {
-                    // Subsequent tiles: copy with crossfade in overlap region
-                    const float* inputData = pitchShiftedTile.getReadPointer(ch);
-                    float* textureData = textureBuffer.getWritePointer(ch);
-
-                    // Crossfade in the overlap region (limited by available space)
-                    for (int i = 0; i < actualOverlapSamples; ++i)
-                    {
-                        float fadeOut = 1.0f - (float)i / (float)actualOverlapSamples; // Previous tile fades out
-                        float fadeIn = (float)i / (float)actualOverlapSamples;          // New tile fades in
-
-                        int texturePos = offset + i;
-                        textureData[texturePos] = textureData[texturePos] * fadeOut + inputData[i] * fadeIn;
-                    }
-
-                    // Copy the rest of the tile (non-overlapping part), if any remains after truncation
-                    int nonOverlapSamples = samplesToCopy - actualOverlapSamples;
-                    if (nonOverlapSamples > 0)
-                    {
-                        textureBuffer.copyFrom(ch, offset + actualOverlapSamples, pitchShiftedTile, ch, actualOverlapSamples, nonOverlapSamples);
-                    }
-                }
-            }
-
-            // If this tile was truncated, apply a quick fade-out to the end of the buffer to avoid abrupt cutoff
-            if (samplesToCopy < pitchShiftedNumSamples)
-            {
-                int fadeOutSamples = juce::jmin(128, samplesToCopy / 2); // Arbitrary small fade (adjust as needed)
-                for (int ch = 0; ch < textureBuffer.getNumChannels(); ++ch)
-                {
-                    textureBuffer.applyGainRamp(ch, lengthInSamples - fadeOutSamples, fadeOutSamples, 1.0f, 0.0f);
-                }
-            }
-
-            currentOffset += (pitchShiftedNumSamples - overlapSamples);
-
-        }
-
-        //waveform = textureBuffer;
-
-        input = textureBuffer;
-    }
-    
-
-
     // Audio playback utilities
     juce::AudioBuffer<float> voiceBuffer;
     std::atomic<int> newVoiceNoteNumber{ -1 };
     std::atomic<int> voiceNoteNumber{ -1 };
-//    juce::Random& rnd;
     int randomOffset = 0;
     float randomPitch = 0.0f;
     juce::AudioBuffer<float> synthesisBuffer;
