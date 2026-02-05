@@ -496,7 +496,11 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 if (remainingSamples < 0) remainingSamples = 0; // Safety clamp (shouldn't hit with processed fix)
 
                 randomPitch = juce::Random::getSystemRandom().nextInt(21) * 0.01f - 0.10f;
-                newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), randomPitch);
+                //newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), randomPitch);
+                newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), static_cast<float>(playbackNote - voiceNoteNumber.load()) + randomPitch);
+
+
+
 
                 // Calculate overlap and non-overlap first
                 int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
