@@ -111,31 +111,18 @@ private:
 
     // Melody capture utilities
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
-//    std::vector<int> formatMelody(const std::vector<int>& melody, bool isGeneratedMelody) const;
 
     // Melody generation utilities
     std::vector<int> generatedMelody{59, -2, 66, -2, 66, -2, 66, -2, 66, -2, 61, -2 , 61, -2, 61, -2 , 61, -2, 66, -2 , 66, -2, 66, -2 , 66, -2, 66, -2 , 66, -2, 66, -2 };
-//    std::vector<int> generatedMelody = std::vector<int>(32, -1);
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
-//    void detectKey(const std::vector<int>& melody);
     int detectedKey = 0;
-//    void produceMelody(const std::vector<int>& melody, int key, int notes, int chaos);
-//    void magnetize(std::vector<int>& melody, float probability) const;
-
-    // Voice buffer creation utilities
-//    juce::AudioBuffer<float> isolateBestNote();
     
-//    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, int targetNote)
     inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, float interval)
     {
         if (input.getNumSamples() == 0 || baseNote < 0)
         {
             return juce::AudioBuffer<float>(input.getNumChannels(), 0);
         }
-
-        // Calculate pitch ratio (semitones to frequency ratio)
-
-//        float semitoneShift = static_cast<float>(targetNote - baseNote)/* + getDetuneFloat()*/;
 
         float semitoneShift = interval;
 
@@ -184,8 +171,6 @@ private:
     }
     inline void textureSynthesis(juce::AudioBuffer<float>& input, int lengthInSamples)
     {
-        // tile the input buffer using custom timing and pitch randomization
-
         // apply fade-in and fade-out
 
         int numSamples = input.getNumSamples();
@@ -201,7 +186,7 @@ private:
         }
 
         waveform = input;
-        // stylize waveform here
+        // stylize waveform here...
         // Normalize the waveform to peak at 1.0
         float peak = 0.0f;
         for (int ch = 0; ch < waveform.getNumChannels(); ++ch)
@@ -214,16 +199,14 @@ private:
             float gain = 1.0f / peak;
             waveform.applyGain(gain);
         }
-
-
         
         juce::AudioBuffer<float> textureBuffer;
         int numTiles = static_cast<int>(lengthInSamples / input.getNumSamples() * 20);//200;
         DBG("numTiles: " + juce::String(numTiles));
         textureBuffer.setSize(input.getNumChannels(), lengthInSamples, false, true, true);
 
-        // pitch randomization: +/- 1-10 cents
-        // offset randomization: 8-16%
+        // pitch randomization: +/- 1-10 cents (-0.10 to 0.10, 0.01 increments)
+        // offset randomization: 8-16% (0.08 to 0.16, 0.01 increments)
 
         juce::Random& rnd = juce::Random::getSystemRandom();
 
@@ -232,13 +215,12 @@ private:
         // push input buffers side by side in textureBuffer with pitch/overlap randomization and crossfade
         for (int tile = 0; tile < numTiles; ++tile)
         {
-            float randomPitch = rnd.nextInt(21) * 0.01f - 0.10f;  // (-0.10 to 0.10, 0.01 increments)
-            float randomOverlap = (rnd.nextInt(9) + 8) * 0.01f;  // (0.08 to 0.16, 0.01 increments)
+            float randomPitch = rnd.nextInt(21) * 0.01f - 0.10f;
+            float randomOverlap = (rnd.nextInt(9) + 8) * 0.01f;
 
             juce::AudioBuffer<float> pitchShiftedTile = pitchShiftByResampling(input, voiceNoteNumber.load(), randomPitch);
             int pitchShiftedNumSamples = pitchShiftedTile.getNumSamples();
             int overlapSamples = pitchShiftedTile.getNumSamples() - static_cast<int>(pitchShiftedTile.getNumSamples() * randomOverlap);
-            //int offset = tile * (pitchShiftedNumSamples - overlapSamples);
             int offset = currentOffset;
 
             // Calculate how much of this tile we can actually copy without overflowing
