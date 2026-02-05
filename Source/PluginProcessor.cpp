@@ -388,12 +388,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 }
             }
 
-
-            // elongate (deprecated)
-//            textureSynthesis(voiceBuffer, 32 * sPs * 2);
-            
-            
-
             resetTiming();
         }
 
