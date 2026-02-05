@@ -328,9 +328,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
 
           //  DBG("Low-res best chunks:");
-            juce::StringArray lrIsoChkArray;
-            lrIsoChkArray.ensureStorageAllocated(static_cast<int>(lowResIsolatedChunks.size()));
-            for (float note : lowResIsolatedChunks) { lrIsoChkArray.add(juce::String(note)); }
+//            juce::StringArray lrIsoChkArray;
+//            lrIsoChkArray.ensureStorageAllocated(static_cast<int>(lowResIsolatedChunks.size()));
+//            for (float note : lowResIsolatedChunks) { lrIsoChkArray.add(juce::String(note)); }
           //  DBG(lrIsoChkArray.joinIntoString(", "));
 
            // DBG("First and last low-res indices:");
@@ -347,9 +347,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
 
            // DBG("Mid-res best chunks:");
-            juce::StringArray mrIsoChkArray;
-            mrIsoChkArray.ensureStorageAllocated(static_cast<int>(midResIsolatedChunks.size()));
-            for (float note : midResIsolatedChunks) { mrIsoChkArray.add(juce::String(note)); }
+//            juce::StringArray mrIsoChkArray;
+//            mrIsoChkArray.ensureStorageAllocated(static_cast<int>(midResIsolatedChunks.size()));
+//            for (float note : midResIsolatedChunks) { mrIsoChkArray.add(juce::String(note)); }
            // DBG(mrIsoChkArray.joinIntoString(", "));
 
            // DBG("First and last mid-res indices:");
@@ -363,9 +363,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             hiResIsolatedChunks.assign(midResIsolatedChunks.begin() + 1, midResIsolatedChunks.begin() + 4);
 
          //   DBG("Hi-res best chunks:");
-            juce::StringArray hrIsoChkArray;
-            hrIsoChkArray.ensureStorageAllocated(static_cast<int>(hiResIsolatedChunks.size()));
-            for (float note : hiResIsolatedChunks) { hrIsoChkArray.add(juce::String(note)); }
+  //          juce::StringArray hrIsoChkArray;
+  //          hrIsoChkArray.ensureStorageAllocated(static_cast<int>(hiResIsolatedChunks.size()));
+  //          for (float note : hiResIsolatedChunks) { hrIsoChkArray.add(juce::String(note)); }
            // DBG(hrIsoChkArray.joinIntoString(", "));
 
          //   DBG("First and last hi-res indices:");
@@ -417,7 +417,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
        //     DBG(juce::String(voiceBuffer.getNumSamples()));
 
-            textureSynthesis(voiceBuffer, 32 * sPs);
+            textureSynthesis(voiceBuffer, 32 * sPs * 2);
             
             
 
