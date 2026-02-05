@@ -113,7 +113,7 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{59, -2, 66, -2, 66, -2, 66, -2, 66, -2, 61, -2 , 61, -2, 61, -2 , 61, -2, 66, -2 , 66, -2, 66, -2 , 66, -2, 66, -2 , 66, -2, 66, -2 };
+    std::vector<int> generatedMelody{60, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     
@@ -169,6 +169,24 @@ private:
 
         return output;
     }
+
+
+    inline void bellCurve(juce::AudioBuffer<float>& input)
+    {
+        int numSamples = input.getNumSamples();
+        if (numSamples > 0)
+        {
+            int fadeSamples = static_cast<int>(numSamples * 0.31f);
+            fadeSamples = juce::jmin(fadeSamples, numSamples / 2);
+            for (int ch = 0; ch < input.getNumChannels(); ++ch)
+            {
+                input.applyGainRamp(ch, 0, fadeSamples, 0.0f, 1.0f);
+                input.applyGainRamp(ch, numSamples - fadeSamples, fadeSamples, 1.0f, 0.0f);
+            }
+        }
+    }
+
+
     inline void textureSynthesis(juce::AudioBuffer<float>& input, int lengthInSamples)
     {
         // apply fade-in and fade-out
@@ -208,15 +226,15 @@ private:
         // pitch randomization: +/- 1-10 cents (-0.10 to 0.10, 0.01 increments)
         // offset randomization: 8-16% (0.08 to 0.16, 0.01 increments)
 
-        juce::Random& rnd = juce::Random::getSystemRandom();
+//        juce::Random& rnd = juce::Random::getSystemRandom();
 
         int currentOffset = 0;
 
         // push input buffers side by side in textureBuffer with pitch/overlap randomization and crossfade
         for (int tile = 0; tile < numTiles; ++tile)
         {
-            float randomPitch = rnd.nextInt(21) * 0.01f - 0.10f;
-            float randomOverlap = (rnd.nextInt(9) + 8) * 0.01f;
+            float randomPitch = 0.0;// rnd.nextInt(21) * 0.01f - 0.10f;
+            float randomOverlap = 1;// (rnd.nextInt(9) + 8) * 0.01f;
 
             juce::AudioBuffer<float> pitchShiftedTile = pitchShiftByResampling(input, voiceNoteNumber.load(), randomPitch);
             int pitchShiftedNumSamples = pitchShiftedTile.getNumSamples();
@@ -290,6 +308,9 @@ private:
     juce::AudioBuffer<float> voiceBuffer;
     std::atomic<int> newVoiceNoteNumber{ -1 };
     std::atomic<int> voiceNoteNumber{ -1 };
+//    juce::Random& rnd;
+    int randomOffset = 0;
+    float randomPitch = 0.0f;
     juce::AudioBuffer<float> synthesisBuffer;
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;

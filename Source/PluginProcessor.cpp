@@ -16,7 +16,8 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
         parameters(*this, nullptr, "Parameters",
         {
             std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.5f)
-        })
+        })//,
+//        rnd(juce::Random::getSystemRandom())
 #endif
 {
     dywapitch_inittracking(&pitchTracker);
@@ -252,11 +253,21 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     // prepare a note for playback if there's a note number
                     if (generatedMelody[n] >= 0)
                     {
-                        int shiftedNote = generatedMelody[n]/* + getOctaveInt() * 12*/;
-//                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), shiftedNote);
-                        float interval = static_cast<float>(shiftedNote - voiceNoteNumber.load());
-                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), interval);
+                        playbackNote = generatedMelody[n];
+                        playbackNoteActive = true;
+
+                        // generate randomOffset 
+                        // generate randomPitch
+
+
+                        synthesisBuffer = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), static_cast<float>(playbackNote - voiceNoteNumber.load()));
+                        randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
+
                         synthesisBuffer_readPos.store(0);
+                    }
+                    else
+                    {
+                        playbackNoteActive = false;
                     }
 
                     // if next generatedMelody symbol indicates a fadeout in the current symbol is needed, activate useADSR here
@@ -359,11 +370,12 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             for (int ch = 0; ch < inputAudioBuffer.getNumChannels(); ++ch)
             {
                 voiceBuffer.copyFrom(ch, 0, inputAudioBuffer, ch, hiResSampleFirstIdx, hiResNumSamples);
+                bellCurve(voiceBuffer);
             }
 
 
             // elongate (deprecated)
-            textureSynthesis(voiceBuffer, 32 * sPs * 2);
+//            textureSynthesis(voiceBuffer, 32 * sPs * 2);
             
             
 
@@ -382,17 +394,84 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             int synthesisBufferSize = synthesisBuffer.getNumSamples();
             int readPos = synthesisBuffer_readPos.load();
 
+
+            //for (int i = 0; i < numSamples; ++i)
+            //{
+            //    int currentPos = readPos + i;
+
+            //    if (currentPos >= synthesisBufferSize) break;
+
+            //    float gain = 1.0f;
+            //    if (useADSR.load()) gain = adsr.getNextSample();
+
+            //    for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
+            //    {
+            //        buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain);
+            //    }
+            //}
+
+            //synthesisBuffer_readPos.store(readPos + numSamples);
+
+            //// continually update the synthesis buffer here at intervals determined by the number of samples of each tile before overlap
+
+            //if (synthesisBuffer_readPos.load() >= randomOffset)
+            //{
+            //    juce::AudioBuffer<float> baseTile; // populate baseTile with the remaining samples in synthesisBuffer from synthesisBuffer_readPos;
+            //    juce::AudioBuffer<float> newTile;
+
+            //    int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
+
+            //    // Set size to remaining + randomOffset to stabilize (prevent infinite growth)
+            //    // Clear extra space to avoid garbage
+            //    baseTile.setSize(synthesisBuffer.getNumChannels(), remainingSamples + randomOffset, false, true, true);
+
+            //    randomPitch = juce::Random::getSystemRandom().nextInt(21) * 0.01f - 0.10f;
+            //    newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), randomPitch);
+
+            //    // Copy remaining to baseTile start
+            //    for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
+            //    {
+            //        baseTile.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), remainingSamples);
+            //    }
+
+            //    // Calculate overlap as the remaining (large overlap implied by small randomOffset)
+            //    int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
+
+            //    // Crossfade the overlap region
+            //    for (int ch = 0; ch < baseTile.getNumChannels(); ++ch)
+            //    {
+            //        float* baseData = baseTile.getWritePointer(ch);
+            //        const float* newData = newTile.getReadPointer(ch);
+
+            //        for (int i = 0; i < overlapSamples; ++i)
+            //        {
+            //            float fadeOut = 1.0f - static_cast<float>(i) / static_cast<float>(overlapSamples);
+            //            float fadeIn = static_cast<float>(i) / static_cast<float>(overlapSamples);
+            //            baseData[i] = baseData[i] * fadeOut + newData[i] * fadeIn;
+            //        }
+            //    }
+
+            //    // Append any non-overlapping part of newTile (should be ~randomOffset)
+            //    int nonOverlapSamples = newTile.getNumSamples() - overlapSamples;
+            //    if (nonOverlapSamples > 0)
+            //    {
+            //        for (int ch = 0; ch < baseTile.getNumChannels(); ++ch)
+            //        {
+            //            baseTile.copyFrom(ch, overlapSamples, newTile, ch, overlapSamples, nonOverlapSamples);
+            //        }
+            //    }
+
+            //    synthesisBuffer = std::move(baseTile);
+            //    randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
+            //    synthesisBuffer_readPos.store(0);
+            //}
+
+            int processed = 0;
             for (int i = 0; i < numSamples; ++i)
             {
                 int currentPos = readPos + i;
 
                 if (currentPos >= synthesisBufferSize) break;
-
-
-
-                // continually update the synthesis buffer here at intervals determined by the number of samples of each chunk before overlap
-
-
 
                 float gain = 1.0f;
                 if (useADSR.load()) gain = adsr.getNextSample();
@@ -401,9 +480,64 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 {
                     buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain);
                 }
+
+                processed = i + 1;
             }
 
-            synthesisBuffer_readPos.store(readPos + numSamples);
+            synthesisBuffer_readPos.store(readPos + processed);
+
+            // continually update the synthesis buffer here at intervals determined by the number of samples of each chunk before overlap
+            if (synthesisBuffer_readPos.load() >= randomOffset)
+            {
+                juce::AudioBuffer<float> baseTile;
+                juce::AudioBuffer<float> newTile;
+
+                int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
+                if (remainingSamples < 0) remainingSamples = 0; // Safety clamp (shouldn't hit with processed fix)
+
+                randomPitch = juce::Random::getSystemRandom().nextInt(21) * 0.01f - 0.10f;
+                newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), randomPitch);
+
+                // Calculate overlap and non-overlap first
+                int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
+                int nonOverlapSamples = newTile.getNumSamples() - overlapSamples;
+
+                // Set size correctly: remaining (to be crossfaded) + non-overlap append
+                baseTile.setSize(synthesisBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
+
+                // Copy remaining to baseTile start
+                for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
+                {
+                    baseTile.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), remainingSamples);
+                }
+
+                // Crossfade the overlap region
+                for (int ch = 0; ch < baseTile.getNumChannels(); ++ch)
+                {
+                    float* baseData = baseTile.getWritePointer(ch);
+                    const float* newData = newTile.getReadPointer(ch);
+
+                    for (int i = 0; i < overlapSamples; ++i)
+                    {
+                        float fadeOut = 1.0f - static_cast<float>(i) / static_cast<float>(overlapSamples);
+                        float fadeIn = static_cast<float>(i) / static_cast<float>(overlapSamples);
+                        baseData[i] = baseData[i] * fadeOut + newData[i] * fadeIn;
+                    }
+                }
+
+                // Append any non-overlapping part of newTile
+                if (nonOverlapSamples > 0)
+                {
+                    for (int ch = 0; ch < baseTile.getNumChannels(); ++ch)
+                    {
+                        baseTile.copyFrom(ch, overlapSamples, newTile, ch, overlapSamples, nonOverlapSamples);
+                    }
+                }
+
+                synthesisBuffer = std::move(baseTile);
+                randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
+                synthesisBuffer_readPos.store(0);
+            }
         }
 
 
