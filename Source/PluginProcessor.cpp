@@ -16,8 +16,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
         parameters(*this, nullptr, "Parameters",
         {
             std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.5f)
-        })//,
-//        rnd(juce::Random::getSystemRandom())
+        })
 #endif
 {
     dywapitch_inittracking(&pitchTracker);
@@ -239,7 +238,19 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             {
                 if (!isExecuted(symbolExecuted, n))
                 {
-                    //DBG(n);
+                    
+                    if (!detectedNoteNumbers.empty())
+                    {
+                        capturedMelody[n] = detectedNoteNumbers.back();
+
+                        currentInputNote = voiceNoteNumber.load() % 12;
+                        if (detectedNoteNumbers.back() >= 0) currentInputNote = detectedNoteNumbers.back() % 12;
+
+//                        DBG("currentInputNote: " + juce::String(currentInputNote));
+                    }
+
+
+
 
                     sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
                     setExecuted(symbolExecuted, n);
@@ -262,9 +273,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                         playbackNote = generatedMelody[n];
                         playbackNoteActive = true;
 
-                        // generate randomOffset 
-                        // generate randomPitch
-
+                        currentOutputNote = generatedMelody[n] % 12;
+//                        DBG("currentOutputNote: " + juce::String(currentOutputNote));
 
                         synthesisBuffer = pitchShiftByResampling(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
                         randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (rnd.nextInt(9) + 8) * 0.01f);//static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);

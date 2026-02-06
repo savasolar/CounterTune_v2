@@ -38,6 +38,11 @@ public:
 
     juce::AudioBuffer<float> waveform;
 
+    int currentInputNote = -1;
+    int currentOutputNote = -1;
+
+    bool playbackNoteActive = false;
+
 private:
 
     // Timing utilities
@@ -113,7 +118,7 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{65, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
+    std::vector<int> generatedMelody{48, -2, 49, -2, 50, -2, 51, -2, 52, -2, 53, -2, 54, -2, 55, -2, 56, -2, 57, -2, 58, -2, 59, -2, 60, -2, 61, -2, 62, -2, 63, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     
@@ -194,7 +199,7 @@ private:
     juce::AudioBuffer<float> synthesisBuffer;
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
-    bool playbackNoteActive = false;
+//    bool playbackNoteActive = false;
     juce::dsp::DryWetMixer<float> dryWetMixer;
     juce::ADSR adsr;
     juce::ADSR::Parameters adsrParams;
