@@ -46,7 +46,11 @@ private:
             auto centre = bounds.getCentre();
 
             g.saveState();
-            g.addTransform(juce::AffineTransform::rotation(juce::MathConstants<float>::pi / 4.0f, centre.getX(), centre.getY()));
+//            g.addTransform(juce::AffineTransform::rotation(juce::MathConstants<float>::pi / 4.0f, centre.getX(), centre.getY()));
+
+            float angleDegrees = 0.0f;  // change this to whatever you want
+
+            g.addTransform(juce::AffineTransform::rotation(angleDegrees * (juce::MathConstants<float>::pi / 180.0f), centre.getX(), centre.getY()));
 
             // </new>
 

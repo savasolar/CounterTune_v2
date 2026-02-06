@@ -21,6 +21,7 @@ CounterTune_v2AudioProcessorEditor::~CounterTune_v2AudioProcessorEditor()
 void CounterTune_v2AudioProcessorEditor::timerCallback()
 {
     waveform.setAudioBuffer(&audioProcessor.waveform, audioProcessor.waveform.getNumSamples());
+    waveform.repaint();
 }
 
 void CounterTune_v2AudioProcessorEditor::paint (juce::Graphics& g)
