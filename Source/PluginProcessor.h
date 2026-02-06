@@ -113,7 +113,7 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{63, -2, -2, -2, 65, -2, -2, -2, 67, -2, -2, -2, 68, -2, -2, -2, 70, -2, -2, -2, 72, -2, -2, -2, 74, -2, -2, -2, 75, -2, -2, -2 };
+    std::vector<int> generatedMelody{65, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     

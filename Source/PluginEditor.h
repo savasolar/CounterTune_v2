@@ -35,11 +35,24 @@ private:
             if (audioBuffer == nullptr || numSamples == 0) return;
             if (audioBuffer->getNumChannels() == 0) return;
 
-            g.setColour(juce::Colours::lightcyan);
+            g.setColour(juce::Colours::white);
+
+
+
+            // <new>
+            auto bounds = getLocalBounds().toFloat();
+            auto centre = bounds.getCentre();
+
+            g.saveState();
+            g.addTransform(juce::AffineTransform::rotation(juce::MathConstants<float>::pi / 4.0f, centre.getX(), centre.getY()));
+
+            // </new>
+
+
 
             float w = static_cast<float> (getWidth());
             float h = static_cast<float> (getHeight()) / 2.0f;
-            float centre = static_cast<float> (getHeight()) / 2.0f;
+            float centreY = static_cast<float> (getHeight()) / 2.0f;
 
             auto* data = audioBuffer->getReadPointer(0);
 
@@ -54,7 +67,7 @@ private:
                 if (idx >= numSamples) break;
 
                 float sample = juce::jlimit(-1.0f, 1.0f, data[idx]);
-                float y = centre - sample * centre;
+                float y = centreY - sample * centreY;
 
                 if (first)
                 {
@@ -68,6 +81,8 @@ private:
             }
 
             g.strokePath(p, juce::PathStrokeType(1.0f));
+
+            g.restoreState();
         }
 
     private:
