@@ -18,6 +18,8 @@ private:
 
     CounterTune_v2AudioProcessor& audioProcessor;
 
+    juce::Image backgroundImage;
+
     // Refactored WaveformViewer - now buffer-agnostic
     struct WaveformViewer : public juce::Component
     {

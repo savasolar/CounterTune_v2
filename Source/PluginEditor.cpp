@@ -6,11 +6,11 @@
 CounterTune_v2AudioProcessorEditor::CounterTune_v2AudioProcessorEditor (CounterTune_v2AudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p)
 {
-    setSize (500, 490);
+    setSize (540, 540);
 
     addAndMakeVisible(waveform);
-    waveform.setBounds(5, 0, 490, 490);
-
+    waveform.setBounds(60, 0, 480, 480);
+    backgroundImage = juce::ImageCache::getFromMemory(BinaryData::uiv7_png, BinaryData::uiv7_pngSize);
     startTimerHz(30);
 }
 
@@ -25,7 +25,7 @@ void CounterTune_v2AudioProcessorEditor::timerCallback()
 
 void CounterTune_v2AudioProcessorEditor::paint (juce::Graphics& g)
 {
-
+    g.drawImage(backgroundImage, getLocalBounds().toFloat());
 }
 
 void CounterTune_v2AudioProcessorEditor::resized()

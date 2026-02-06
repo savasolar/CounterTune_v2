@@ -124,7 +124,7 @@ set_source_files_properties(Dependencies/dywapitchtrack/src/dywapitchtrack.c PRO
 
 # Binary data
 juce_add_binary_data(BinaryResources SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/Resources/placeholder.bmp
+        ${CMAKE_CURRENT_SOURCE_DIR}/Resources/uiv7.png
 )
 
 # Link everything
