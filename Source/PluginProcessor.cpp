@@ -102,6 +102,12 @@ void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samples
 
     adsr.setSampleRate(sampleRate);
 
+    // Configure the limiter
+    juce::dsp::ProcessSpec spec{ sampleRate, static_cast<uint32_t>(samplesPerBlock), static_cast<uint32_t>(getTotalNumOutputChannels()) };
+    limiter.prepare(spec);
+    limiter.setThreshold(limiterCeiling);  // Ceiling at -11 dBFS
+    limiter.setRelease(5.0f);      // Release time in ms (adjust as needed for smoothness)
+
     resetTiming();
 }
 
@@ -413,15 +419,23 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 float gain = 1.0f;
                 if (useADSR.load()) gain = adsr.getNextSample();
 
+                float plus9decibels = juce::Decibels::decibelsToGain(limiterGain);
+
                 for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
                 {
-                    buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain);
+                    buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain * plus9decibels);
                 }
 
                 processed = i + 1;
             }
 
             synthesisBuffer_readPos.store(readPos + processed);
+
+            // Apply limiter to the boosted wet signal (ceiling at -11 dB)
+            limiter.process(juce::dsp::ProcessContextReplacing<float>(block));
+            block.multiplyBy(juce::Decibels::decibelsToGain(limiterCeiling));
+
+
 
             // continually update the synthesis buffer here at intervals determined by the number of samples of each chunk before overlap
             if (synthesisBuffer_readPos.load() >= randomOffset)

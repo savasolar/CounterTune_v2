@@ -42,7 +42,7 @@ private:
 
     // Timing utilities
 
-    float bpm = 120.0f;
+    float bpm = 120.0f;  // high tempos been crashy
     float speed = 1.00;
     int sPs = 0;
     int sampleDrift = 0;
@@ -199,8 +199,9 @@ private:
     juce::ADSR adsr;
     juce::ADSR::Parameters adsrParams;
     std::atomic<bool> useADSR{ false };
-
-
+    juce::dsp::Limiter<float> limiter;
+    float limiterGain = 8.0f;
+    float limiterCeiling = -12.0f;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CounterTune_v2AudioProcessor)
 };
