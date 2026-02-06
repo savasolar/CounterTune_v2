@@ -202,6 +202,7 @@ private:
     juce::dsp::Limiter<float> limiter;
     float limiterGain = 8.0f;
     float limiterCeiling = -12.0f;
+    juce::Random rnd;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CounterTune_v2AudioProcessor)
 };

@@ -267,7 +267,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 
                         synthesisBuffer = pitchShiftByResampling(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
-                        randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
+                        randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (rnd.nextInt(9) + 8) * 0.01f);//static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
 
                         synthesisBuffer_readPos.store(0);
                     }
@@ -446,7 +446,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
                 if (remainingSamples < 0) remainingSamples = 0; // Safety clamp (shouldn't hit with processed fix)
 
-                randomPitch = juce::Random::getSystemRandom().nextInt(21) * 0.01f - 0.10f;
+                randomPitch = rnd.nextInt(21) * 0.01f - 0.10f;  //juce::Random::getSystemRandom().nextInt(21) * 0.01f - 0.10f;
                 //newTile = pitchShiftByResampling(voiceBuffer, voiceNoteNumber.load(), randomPitch);
                 newTile = pitchShiftByResampling(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomPitch);
 
@@ -487,7 +487,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 }
 
                 synthesisBuffer = std::move(baseTile);
-                randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
+                randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (rnd.nextInt(9) + 8) * 0.01f);//static_cast<int>(synthesisBuffer.getNumSamples() * (juce::Random::getSystemRandom().nextInt(9) + 8) * 0.01f);
                 synthesisBuffer_readPos.store(0);
             }
         }
