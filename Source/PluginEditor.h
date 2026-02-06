@@ -44,8 +44,8 @@ private:
 
             g.setColour(juce::Colours::white);
 
-            float leftPoint = (11.0f - static_cast<float>(audioProcessor.currentInputNote)) * 43.64f;
-            float rightPoint = (11.0f - static_cast<float>(audioProcessor.currentOutputNote)) * 43.64f;
+            float leftPoint = (11.0f - static_cast<float>(/*audioProcessor.currentInputNote*/0)) * 43.64f;
+            float rightPoint = (11.0f - static_cast<float>(/*audioProcessor.currentOutputNote*/1)) * 43.64f;
 
 
 
@@ -53,7 +53,8 @@ private:
             // Fixed background square (in local component coords)
             juce::Rectangle<float> fixedRect = getLocalBounds().toFloat();
             juce::Point<float> center = fixedRect.getCentre();
-
+            float midpointY = (leftPoint + rightPoint) / 2.0f;
+            juce::Point<float> customCenter(center.getX(), midpointY);
 
 
 
@@ -71,11 +72,13 @@ private:
 
 
 
+
             // STEP 2: REPOSITION
             // - the center point of the resized drawable area has to align with the center point of x:60, y:0, w:480, h:480
+            // but make its y position aligned to the center point between the left point and right point
 
             juce::Rectangle<float> drawRect(0.f, 0.f, side, side);
-            drawRect = drawRect.withCentre(center);
+            drawRect = drawRect.withCentre(customCenter);
 
 
 
@@ -85,8 +88,8 @@ private:
             // - given the angle of rotation, rotate the resized, repositioned thing
 
             juce::Graphics::ScopedSaveState save(g);
-            g.addTransform(juce::AffineTransform::rotation(angle, center.getX(), center.getY()));
-
+//            g.addTransform(juce::AffineTransform::rotation(angle, center.getX(), center.getY()));
+            g.addTransform(juce::AffineTransform::rotation(angle, customCenter.getX(), customCenter.getY()));
 
 
 
