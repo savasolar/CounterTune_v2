@@ -242,10 +242,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     if (!detectedNoteNumbers.empty())
                     {
                         capturedMelody[n] = detectedNoteNumbers.back();
-
                         currentInputNote = voiceNoteNumber.load() % 12;
                         if (detectedNoteNumbers.back() >= 0) currentInputNote = detectedNoteNumbers.back() % 12;
 
+                        currentOutputNote = generatedMelody[n] % 12;
 //                        DBG("currentInputNote: " + juce::String(currentInputNote));
                     }
 
@@ -273,7 +273,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                         playbackNote = generatedMelody[n];
                         playbackNoteActive = true;
 
-                        currentOutputNote = generatedMelody[n] % 12;
+//                        currentOutputNote = generatedMelody[n] % 12;
 //                        DBG("currentOutputNote: " + juce::String(currentOutputNote));
 
                         synthesisBuffer = pitchShiftByResampling(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));

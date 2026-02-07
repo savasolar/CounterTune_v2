@@ -44,8 +44,8 @@ private:
 
             g.setColour(juce::Colours::white);
 
-            float leftPoint = (11.0f - static_cast<float>(/*audioProcessor.currentInputNote*/0)) * 43.64f;
-            float rightPoint = (11.0f - static_cast<float>(/*audioProcessor.currentOutputNote*/1)) * 43.64f;
+            float leftPoint = (11.0f - static_cast<float>(audioProcessor.currentInputNote)) * 43.64f;
+            float rightPoint = (11.0f - static_cast<float>(audioProcessor.currentOutputNote)) * 43.64f;
 
 
 
