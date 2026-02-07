@@ -37,6 +37,18 @@ private:
             repaint();
         }
 
+        bool isFlat() const
+        {
+            if (audioBuffer == nullptr || numSamples == 0) return true;
+
+            float maxMag = 0.0f;
+            for (int ch = 0; ch < audioBuffer->getNumChannels(); ++ch)
+            {
+                maxMag = std::max(maxMag, audioBuffer->getMagnitude(ch, 0, numSamples));
+            }
+            return (maxMag < 1e-4f);  // Adjust threshold as needed for "flat" detection
+        }
+
         void paint(juce::Graphics& g) override
         {
             if (audioBuffer == nullptr || numSamples == 0) return;

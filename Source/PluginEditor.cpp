@@ -21,6 +21,13 @@ CounterTune_v2AudioProcessorEditor::~CounterTune_v2AudioProcessorEditor()
 void CounterTune_v2AudioProcessorEditor::timerCallback()
 {
     waveform.setAudioBuffer(&audioProcessor.waveform, audioProcessor.waveform.getNumSamples());
+
+    
+    bool isFlat = waveform.isFlat();
+
+    waveform.setVisible(!isFlat);
+
+
     waveform.repaint();
 
     DBG("current input, output: " + juce::String(audioProcessor.currentInputNote) + ", " + juce::String(audioProcessor.currentOutputNote));
