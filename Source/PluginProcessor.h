@@ -63,36 +63,7 @@ private:
     inline bool isExecuted(uint32_t& mask, int step) const { jassert(step >= 0 && step < 32); return (mask & (1u << step)) != 0; }
     inline bool allExecuted(uint32_t& mask) const { return mask == 0xFFFFFFFFu; }
     
-    inline void resetTiming()
-    {
-        if (!detectedFrequencies.empty() && std::all_of(detectedFrequencies.begin(), detectedFrequencies.end(), [](float f) { return f <= 0.0f; }))
-        {
-            triggerCycle = false;
-            isFirstCycle = true;
-        }
-
-        pitchDetectorFillPos = 0;
-        detectedFrequencies.clear();
-        detectedNoteNumbers.clear();
-        inputAudioBuffer.clear();
-        inputAudioBuffer_writePos.store(0);
-        phaseCounter = 0;
-        std::fill(capturedMelody.begin(), capturedMelody.end(), -1);
-
-        float currentBpm = bpm;
-        float currentSpeed = speed;
-        sPs = static_cast<int>(std::round(60.0 / currentBpm * getSampleRate() / 4.0 * 1.0 / speed));
-
-        int requiredSize = 32 * sPs + 4096;
-        inputAudioBuffer.setSize(2, requiredSize, false, true);
-        inputAudioBuffer_samplesToRecord.store(requiredSize);
-
-        adsrParams.attack = 0.0f;
-        adsrParams.decay = 0.0f;
-        adsrParams.sustain = 1.0f;
-        adsrParams.release = static_cast<float>(sPs) / static_cast<float>(getSampleRate());
-        adsr.setParameters(adsrParams);
-    }
+    void resetTiming();
 
     // Pitch detection utilities
     dywapitchtracker pitchTracker;
@@ -118,11 +89,11 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{60, 59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
+    std::vector<int> generatedMelody{60, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     
-    inline juce::AudioBuffer<float> pitchShiftByResampling(const juce::AudioBuffer<float>& input, int baseNote, float interval)
+    inline juce::AudioBuffer<float> pitchShift(const juce::AudioBuffer<float>& input, int baseNote, float interval)
     {
         if (input.getNumSamples() == 0 || baseNote < 0)
         {
@@ -199,15 +170,24 @@ private:
     juce::AudioBuffer<float> synthesisBuffer;
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
-//    bool playbackNoteActive = false;
     juce::dsp::DryWetMixer<float> dryWetMixer;
-    juce::ADSR adsr;
-    juce::ADSR::Parameters adsrParams;
-    std::atomic<bool> useADSR{ false };
+    juce::ADSR flicker;
+    juce::ADSR::Parameters flickerParams;
+    std::atomic<bool> useFlicker{ false };
+
     juce::dsp::Limiter<float> limiter;
     float limiterGain = 8.0f;
     float limiterCeiling = -12.0f;
+
     juce::Random rnd;
+
+    float attack = 0.0f;  // Percentage of 0-2 seconds before note end
+    float decay = 0.0f;  // Percentage of 0-2 seconds before note end
+    float sustain = 1.0f;  // Percentage of 0-1 gain coefficient
+    float release = 0.5f;  // Percentage of 0-2 seconds after note end
+
+    juce::AudioBuffer<float> releaseBuffer;
+    std::atomic<int> releaseBuffer_readPos{ 0 };
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CounterTune_v2AudioProcessor)
 };

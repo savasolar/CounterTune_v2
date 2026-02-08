@@ -30,7 +30,7 @@ void CounterTune_v2AudioProcessorEditor::timerCallback()
 
     waveform.repaint();
 
-    DBG("current input, output: " + juce::String(audioProcessor.currentInputNote) + ", " + juce::String(audioProcessor.currentOutputNote));
+//    DBG("current input, output: " + juce::String(audioProcessor.currentInputNote) + ", " + juce::String(audioProcessor.currentOutputNote));
 }
 
 void CounterTune_v2AudioProcessorEditor::paint (juce::Graphics& g)
