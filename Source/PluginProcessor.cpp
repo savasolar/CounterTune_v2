@@ -23,6 +23,20 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 
     waveform.setSize(2, 1); // dummy initial size
 
+
+
+
+    offsetFractions.resize(tableSize);
+    detuneSemitones.resize(tableSize);
+    for (int i = 0; i < tableSize; ++i)
+    {
+        offsetFractions[i] = (rnd.nextInt(9) + 8) * 0.01f;
+        detuneSemitones[i] = (rnd.nextInt(21) * 0.01f) - 0.10f;
+    }
+    offsetIndex = 0;
+    detuneIndex = 0;
+
+
 //    DBG("check 123");
 }
 
@@ -289,7 +303,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                         // prepare synthesis buffer with latest info
                         synthesisBuffer = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
-                        randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (rnd.nextInt(9) + 8) * 0.01f);
+                        randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
+
                         synthesisBuffer_readPos.store(0);
                     }
                     else
@@ -302,18 +317,21 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     {
                         // prepare release buffer with last note info
                         // 
-                        // take currentPos of synthesisBuffer
-                        // add the amount of samples until the end of this symbol
-                        // add the amount of PREDETERMINED offset calculations
-                        // 
-                        // 
-                        // basically recreate the future of synthesisBuffer
-                        // recreate the future
-                        // 
+
+                        // what will synthesisBuffer look like N tiles from now, "futureSynthesisBuffer", where N = the number of tiling events before the end of this note?
+                        
+                        // precisely how many samples will there be from now until the start of futureSynthesisBuffer?
+
+                        // what read position are we right now from the start of the current synthesisBuffer
+
+                        // releaseBuffer = the remaining samples of futureSynthesisBuffer after synthesisBuffer_readPos.load() samples
+
+                        // releaseBuffer tiles will draw from futureSynthesisBuffer
+
                         // 
 //                        releaseBuffer = synthesisBuffer; releaseBuffer = the remaining samples of what synthesisBuffer will be at the end of this symbol
-//                        randomReleaseOffset = synthesisBuffer_readPos.load() + static_cast<int>(releaseBuffer.getNumSamples() * (rnd.nextInt(9) + 8) * 0.01f);
-//                        releaseBuffer_readPos.store(synthesisBuffer_readPos.load());
+//                        randomReleaseOffset = static_cast<int>(releaseBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
+//                        releaseBuffer_readPos.store(0);
 
 
                         /*if there is no release tail:*/
@@ -484,7 +502,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
                 if (remainingSamples < 0) remainingSamples = 0;
 
-                randomSynthesisPitch = rnd.nextInt(21) * 0.01f - 0.10f;
+                randomSynthesisPitch = detuneSemitones[detuneIndex & (tableSize - 1)];
+                ++detuneIndex;
+
+
                 newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomSynthesisPitch);
 
                 // Calculate overlap and non-overlap first
@@ -526,7 +547,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 synthesisBuffer = std::move(baseTile);
                 synthesisBuffer_readPos.store(0);
 
-                randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * (rnd.nextInt(9) + 8) * 0.01f);
+                randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
+                ++offsetIndex;
             }
         }
 
@@ -545,7 +567,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 if (currentPos >= releaseBufferSize) break;
 
                 float gain = 1.0f;
-                //if (useFlicker.load()) gain = flicker.getNextSample();  // make this its own unique gain ramp
 
                 float plus9decibels = juce::Decibels::decibelsToGain(limiterGain);
 

@@ -89,7 +89,7 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{60, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
+    std::vector<int> generatedMelody{59, 58, 57, 56, 55, 54, 53, 52, 51, 50, 49, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, -2, -2, -2, -2, -2, -2, -2, -2, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     
@@ -167,6 +167,8 @@ private:
     std::atomic<int> voiceNoteNumber{ -1 };
     int randomSynthesisOffset = 0;
     float randomSynthesisPitch = 0.0f;
+
+
     juce::AudioBuffer<float> synthesisBuffer;
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
@@ -184,12 +186,27 @@ private:
     float attack = 0.0f;  // Percentage of 0-2 seconds before note end
     float decay = 0.0f;  // Percentage of 0-2 seconds before note end
     float sustain = 1.0f;  // Percentage of 0-1 gain coefficient
-    float release = 0.5f;  // Percentage of 0-2 seconds after note end
+    float release = 0.0f;  // Percentage of 0-2 seconds after note end
 
     int randomReleaseOffset = 0;
     float randomReleasePitch = 0.0f;
     juce::AudioBuffer<float> releaseBuffer;
     std::atomic<int> releaseBuffer_readPos{ 0 };
+    juce::AudioBuffer<float> futureSynthesisBuffer;
+    std::atomic<int> futureSynthesisNoteNumber{ -1 };
+
+
+    std::vector<float> offsetFractions;
+    std::vector<float> detuneSemitones;
+
+    int offsetIndex = 0;
+    int detuneIndex = 0;
+
+    constexpr static int tableSize = 512;
+
+
+
+
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CounterTune_v2AudioProcessor)
 };
