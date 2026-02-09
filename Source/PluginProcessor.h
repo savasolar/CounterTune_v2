@@ -165,8 +165,8 @@ private:
     juce::AudioBuffer<float> voiceBuffer;
     std::atomic<int> newVoiceNoteNumber{ -1 };
     std::atomic<int> voiceNoteNumber{ -1 };
-    int randomOffset = 0;
-    float randomPitch = 0.0f;
+    int randomSynthesisOffset = 0;
+    float randomSynthesisPitch = 0.0f;
     juce::AudioBuffer<float> synthesisBuffer;
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
@@ -186,6 +186,8 @@ private:
     float sustain = 1.0f;  // Percentage of 0-1 gain coefficient
     float release = 0.5f;  // Percentage of 0-2 seconds after note end
 
+    int randomReleaseOffset = 0;
+    float randomReleasePitch = 0.0f;
     juce::AudioBuffer<float> releaseBuffer;
     std::atomic<int> releaseBuffer_readPos{ 0 };
 
