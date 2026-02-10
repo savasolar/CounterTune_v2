@@ -26,7 +26,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
     synthesisBuffer.setSize(2, 1);
     remainingSynthesisBuffer.setSize(2, 1);
 
-
+    releaseBuffer.setSize(2, 1);
 
 
     offsetFractions.resize(tableSize);
@@ -319,7 +319,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                             {
                                 remainingSynthesisBuffer.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load());
                             }
-                            DBG("remainingSynthesis populated " + juce::String(remainingSynthesisBuffer.getNumSamples()));
+                            releaseBuffer = std::move(remainingSynthesisBuffer);
+                            DBG("releaseBuffer populated " + juce::String(releaseBuffer.getNumSamples()));
                         }
 
                         playbackNote = generatedMelody[n];
@@ -502,7 +503,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 juce::AudioBuffer<float> baseTile;
                 juce::AudioBuffer<float> newTile;
 
-                juce::AudioBuffer<float> firstReleaseTile;
+                juce::AudioBuffer<float> baseReleaseTile;
                 juce::AudioBuffer<float> newReleaseTile;
 
                 int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
@@ -514,7 +515,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomSynthesisPitch);
 
                 newReleaseTile = pitchShift(voiceBuffer, (releaseNote.load() % 12), static_cast<float>((playbackNote % 12) - (releaseNote.load() % 12)) + randomSynthesisPitch);
+                newReleaseTile.setSize(newReleaseTile.getNumChannels(), newTile.getNumSamples(), true, true, true);
 
+                DBG("newTile size: " + juce::String(newTile.getNumSamples()) + ", newReleaseTile size: " + juce::String(newReleaseTile.getNumSamples()));
 
                 // Calculate overlap and non-overlap first
                 int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
@@ -523,7 +526,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 // Set size correctly: remaining (to be crossfaded) + non-overlap append
                 baseTile.setSize(synthesisBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
 
-                firstReleaseTile.setSize(synthesisBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
+                baseReleaseTile.setSize(synthesisBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
 
                 // Copy remaining to first tile start
                 for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
@@ -534,9 +537,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                     // the firstReleaseTile should just be the remaining samples in the synthesisBuffer at the time of a note change.
 
-                    if (remainingSynthesisBuffer.getNumSamples() != 0)
-                       firstReleaseTile.copyFrom(ch, 0, remainingSynthesisBuffer, ch, 0, juce::jmin(remainingSamples, remainingSynthesisBuffer.getNumSamples()));
-                    DBG("populated firstReleaseTile: " + juce::String(firstReleaseTile.getNumSamples()) + " samples");
+                    if (releaseBuffer.getNumSamples() != 0)
+                    {
+                        baseReleaseTile.copyFrom(ch, 0, releaseBuffer, ch, 0, juce::jmin(remainingSamples, releaseBuffer.getNumSamples()));
+                    }
                 }
 
                 // Crossfade the overlap region
@@ -564,6 +568,39 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                 synthesisBuffer = std::move(baseTile);
                 synthesisBuffer_readPos.store(0);
+
+
+
+                // moving too fast and breaking too much. This should work but it crashes because I forgot some fucking shit:
+
+                //// Crossfade the overlap region
+                //for (int ch = 0; ch < baseReleaseTile.getNumChannels(); ++ch)
+                //{
+                //    float* baseData = baseReleaseTile.getWritePointer(ch);
+                //    const float* newData = newReleaseTile.getReadPointer(ch);
+
+                //    for (int i = 0; i < overlapSamples; ++i)
+                //    {
+                //        float fadeOut = 1.0f - static_cast<float>(i) / static_cast<float>(overlapSamples);
+                //        float fadeIn = static_cast<float>(i) / static_cast<float>(overlapSamples);
+                //        baseData[i] = baseData[i] * fadeOut + newData[i] * fadeIn;
+                //    }
+                //}
+
+                //// Append any non-overlapping part of newTile
+                //if (nonOverlapSamples > 0)
+                //{
+                //    for (int ch = 0; ch < baseReleaseTile.getNumChannels(); ++ch)
+                //    {
+                //        baseReleaseTile.copyFrom(ch, overlapSamples, newReleaseTile, ch, overlapSamples, nonOverlapSamples);
+                //    }
+                //}
+
+                //releaseBuffer = std::move(baseReleaseTile);
+
+
+
+
 
                 randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
                 ++offsetIndex;
