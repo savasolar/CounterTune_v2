@@ -172,6 +172,7 @@ private:
     juce::AudioBuffer<float> synthesisBuffer;
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
+
     juce::dsp::DryWetMixer<float> dryWetMixer;
     juce::ADSR flicker;
     juce::ADSR::Parameters flickerParams;
@@ -186,23 +187,20 @@ private:
     float attack = 0.0f;  // Percentage of 0-2 seconds before note end
     float decay = 0.0f;  // Percentage of 0-2 seconds before note end
     float sustain = 1.0f;  // Percentage of 0-1 gain coefficient
-    float release = 0.0f;  // Percentage of 0-2 seconds after note end
-
-    int randomReleaseOffset = 0;
-    float randomReleasePitch = 0.0f;
-    juce::AudioBuffer<float> releaseBuffer;
-    std::atomic<int> releaseBuffer_readPos{ 0 };
-    juce::AudioBuffer<float> futureSynthesisBuffer;
-    std::atomic<int> futureSynthesisNoteNumber{ -1 };
-
+    float release = 0.5f;  // Percentage of 0-2 seconds after note end
 
     std::vector<float> offsetFractions;
     std::vector<float> detuneSemitones;
-
     int offsetIndex = 0;
     int detuneIndex = 0;
-
     constexpr static int tableSize = 512;
+
+    int releaseOffsetIndex = 0;
+    int releaseDetuneIndex = 0;
+
+
+
+    int releaseNote = 60;
 
 
 

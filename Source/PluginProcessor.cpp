@@ -36,6 +36,9 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
     offsetIndex = 0;
     detuneIndex = 0;
 
+    releaseOffsetIndex = 0;
+    releaseDetuneIndex = 0;
+
 
 //    DBG("check 123");
 }
@@ -186,12 +189,7 @@ void CounterTune_v2AudioProcessor::resetTiming()
 void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    
-    // shared vars
-
     int numSamples = buffer.getNumSamples();
-
-    // Get good pitch readouts
 
     // Mix current block to mono for pitch detection
     juce::AudioBuffer<float> monoBlock(1, numSamples);
@@ -203,13 +201,11 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     }
     if (numChannels > 0) monoBlock.applyGain(1.0f / numChannels);
     auto* monoData = monoBlock.getReadPointer(0);
-
     // Accumulate for pitch detection
     int analysisSpaceLeft = analysisBuffer.getNumSamples() - pitchDetectorFillPos;
     int analysisToCopy = juce::jmin(analysisSpaceLeft, numSamples);
     analysisBuffer.copyFrom(0, pitchDetectorFillPos, monoData, analysisToCopy);
     pitchDetectorFillPos += analysisToCopy;
-
     // If full, detect pitch and store MIDI note
     if (pitchDetectorFillPos >= analysisBuffer.getNumSamples())
     {
@@ -236,7 +232,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
         pitchDetectorFillPos = 0;
     }
-
     // Handle overflow
     if (analysisToCopy < numSamples)
     {
@@ -298,13 +293,27 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     // prepare a note for playback if there's a note number
                     if (generatedMelody[n] >= 0)
                     {
+                        //if (release > 0.0f)
+                        //{
+                        //    releasePlaybackNote = playbackNote;
+
+                        //    // give release envelope the current synthesisBuffer right before it is replaced
+                        //    releaseBuffer.setSize(synthesisBuffer.getNumChannels(), synthesisBuffer.getNumSamples(), false, true, true);
+                        //    int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
+                        //    for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
+                        //    {
+                        //        releaseBuffer.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), remainingSamples);
+                        //    }
+                        //    randomReleaseOffset = static_cast<int>(releaseBuffer.getNumSamples() * offsetFractions[releaseOffsetIndex & (tableSize - 1)]);
+                        //    releaseBuffer_readPos.store(0);
+                        //}
+
                         playbackNote = generatedMelody[n];
                         playbackNoteActive = true;
 
                         // prepare synthesis buffer with latest info
                         synthesisBuffer = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
                         randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
-
                         synthesisBuffer_readPos.store(0);
                     }
                     else
@@ -315,26 +324,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     // if next generatedMelody symbol is a new note or noteoff event
                     if ((generatedMelody[(n + 1) % 32]) >= -1)
                     {
-                        // prepare release buffer with last note info
-                        // 
-
-                        // what will synthesisBuffer look like N tiles from now, "futureSynthesisBuffer", where N = the number of tiling events before the end of this note?
-                        
-                        // precisely how many samples will there be from now until the start of futureSynthesisBuffer?
-
-                        // what read position are we right now from the start of the current synthesisBuffer
-
-                        // releaseBuffer = the remaining samples of futureSynthesisBuffer after synthesisBuffer_readPos.load() samples
-
-                        // releaseBuffer tiles will draw from futureSynthesisBuffer
-
-                        // 
-//                        releaseBuffer = synthesisBuffer; releaseBuffer = the remaining samples of what synthesisBuffer will be at the end of this symbol
-//                        randomReleaseOffset = static_cast<int>(releaseBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
-//                        releaseBuffer_readPos.store(0);
-
-
-                        /*if there is no release tail:*/
                         if (release == 0.0f)
                         {
                             useFlicker.store(true);
@@ -477,11 +466,11 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 float gain = 1.0f;
                 if (useFlicker.load()) gain = flicker.getNextSample();
 
-                float plus9decibels = juce::Decibels::decibelsToGain(limiterGain);
+//                float plus9decibels = juce::Decibels::decibelsToGain(limiterGain);
 
                 for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
                 {
-                    buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain * plus9decibels);
+                    buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain/* * plus9decibels*/);
                 }
 
                 processed = i + 1;
@@ -490,13 +479,16 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             synthesisBuffer_readPos.store(readPos + processed);
 
             // Apply limiter to the boosted wet signal (ceiling at -11 dB)
-            limiter.process(juce::dsp::ProcessContextReplacing<float>(block));
-            block.multiplyBy(juce::Decibels::decibelsToGain(limiterCeiling));
+//            limiter.process(juce::dsp::ProcessContextReplacing<float>(block));
+//            block.multiplyBy(juce::Decibels::decibelsToGain(limiterCeiling));
 
             // spawn synthesis tiles
             if (synthesisBuffer_readPos.load() >= randomSynthesisOffset)
             {
+//                juce::AudioBuffer<float> baseTile;
+
                 juce::AudioBuffer<float> baseTile;
+                juce::AudioBuffer<float> releaseTile;
                 juce::AudioBuffer<float> newTile;
 
                 int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
@@ -504,7 +496,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                 randomSynthesisPitch = detuneSemitones[detuneIndex & (tableSize - 1)];
                 ++detuneIndex;
-
 
                 newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomSynthesisPitch);
 
@@ -552,95 +543,18 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
         }
 
-        // tile releaseBuffer to output buffer
-        if (releaseBuffer.getNumSamples() > 0)
-        {
-            int numSamples = buffer.getNumSamples();
-            int releaseBufferSize = releaseBuffer.getNumSamples();
-            int readPos = releaseBuffer_readPos.load();
 
-            int processed = 0;
-            for (int i = 0; i < numSamples; ++i)
-            {
-                int currentPos = readPos + i;
 
-                if (currentPos >= releaseBufferSize) break;
 
-                float gain = 1.0f;
+        //=======================================================================================
+        //=======================================================================================
+        //=============================== Ay carumba! ===========================================
+        //=======================================================================================
+        //=======================================================================================
+        //=======================================================================================
+        //=======================================================================================
 
-                float plus9decibels = juce::Decibels::decibelsToGain(limiterGain);
 
-                for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), releaseBuffer.getNumChannels()); ++ch)
-                {
-                    buffer.addSample(ch, i, releaseBuffer.getSample(ch, currentPos) * gain * plus9decibels);
-                }
-
-                processed = i + 1;
-            }
-
-            releaseBuffer_readPos.store(readPos + processed);
-
-            // Apply limiter to the boosted wet signal (ceiling at -11 dB)
-            limiter.process(juce::dsp::ProcessContextReplacing<float>(block));
-            block.multiplyBy(juce::Decibels::decibelsToGain(limiterCeiling));
-
-/*
-            // spawn release tiles
-            // ...
-            if (releaseBuffer_readPos.load() >= randomReleaseOffset)
-            {
-                juce::AudioBuffer<float> baseTile;
-                juce::AudioBuffer<float> newTile;
-
-                int remainingSamples = releaseBuffer.getNumSamples() - releaseBuffer_readPos.load();
-                if (remainingSamples < 0) remainingSamples = 0;
-
-                randomReleasePitch = rnd.nextInt(21) * 0.01f - 0.10f;
-                newTile = pitchShift(voiceReleaseBuffer, (voiceReleaseNoteNumber.load() % 12), static_cast<float>((releasePlaybackNote % 12) - (voiceReleaseNoteNumber.load() % 12)) + randomReleasePitch);
-
-                // Calculate overlap and non-overlap first
-                int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
-                int nonOverlapSamples = newTile.getNumSamples() - overlapSamples;
-
-                // Set size correctly: remaining (to be crossfaded) + non-overlap append
-                baseTile.setSize(releaseBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
-
-                // Copy remaining to baseTile start
-                for (int ch = 0; ch < releaseBuffer.getNumChannels(); ++ch)
-                {
-                    baseTile.copyFrom(ch, 0, releaseBuffer, ch, releaseBuffer_readPos.load(), remainingSamples);
-                }
-
-                // Crossfade the overlap region
-                for (int ch = 0; ch < baseTile.getNumChannels(); ++ch)
-                {
-                    float* baseData = baseTile.getWritePointer(ch);
-                    const float* newData = newTile.getReadPointer(ch);
-
-                    for (int i = 0; i < overlapSamples; ++i)
-                    {
-                        float fadeOut = 1.0f - static_cast<float>(i) / static_cast<float>(overlapSamples);
-                        float fadeIn = static_cast<float>(i) / static_cast<float>(overlapSamples);
-                        baseData[i] = baseData[i] * fadeOut + newData[i] * fadeIn;
-                    }
-                }
-
-                // Append any non-overlapping part of newTile
-                if (nonOverlapSamples > 0)
-                {
-                    for (int ch = 0; ch < baseTile.getNumChannels(); ++ch)
-                    {
-                        baseTile.copyFrom(ch, overlapSamples, newTile, ch, overlapSamples, nonOverlapSamples);
-                    }
-                }
-
-                releaseBuffer = std::move(baseTile);
-                releaseBuffer_readPos.store(0);
-
-                randomReleaseOffset = static_cast<int>(releaseBuffer.getNumSamples() * (rnd.nextInt(9) + 8) * 0.01f);
-            }
-            */
-        }
 
 
 
@@ -649,9 +563,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         dryWetMixer.mixWetSamples(block);
 
     }
-
-
-
 }
 
 bool CounterTune_v2AudioProcessor::hasEditor() const
