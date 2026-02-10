@@ -23,6 +23,9 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 
     waveform.setSize(2, 1); // dummy initial size
 
+    synthesisBuffer.setSize(2, 1);
+    remainingSynthesisBuffer.setSize(2, 1);
+
 
 
 
@@ -308,6 +311,17 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                         //    releaseBuffer_readPos.store(0);
                         //}
 
+                        if (release > 0.0f)
+                        {
+                            
+                            remainingSynthesisBuffer.setSize(synthesisBuffer.getNumChannels(), synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load(), false, true, true);
+                            for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
+                            {
+                                remainingSynthesisBuffer.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load());
+                            }
+                            DBG("remainingSynthesis populated " + juce::String(remainingSynthesisBuffer.getNumSamples()));
+                        }
+
                         playbackNote = generatedMelody[n];
                         playbackNoteActive = true;
 
@@ -485,11 +499,11 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             // spawn synthesis tiles
             if (synthesisBuffer_readPos.load() >= randomSynthesisOffset)
             {
-//                juce::AudioBuffer<float> baseTile;
-
                 juce::AudioBuffer<float> baseTile;
-                juce::AudioBuffer<float> releaseTile;
                 juce::AudioBuffer<float> newTile;
+
+                juce::AudioBuffer<float> firstReleaseTile;
+                juce::AudioBuffer<float> newReleaseTile;
 
                 int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
                 if (remainingSamples < 0) remainingSamples = 0;
@@ -499,6 +513,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                 newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomSynthesisPitch);
 
+                newReleaseTile = pitchShift(voiceBuffer, (releaseNote.load() % 12), static_cast<float>((playbackNote % 12) - (releaseNote.load() % 12)) + randomSynthesisPitch);
+
+
                 // Calculate overlap and non-overlap first
                 int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
                 int nonOverlapSamples = newTile.getNumSamples() - overlapSamples;
@@ -506,10 +523,20 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 // Set size correctly: remaining (to be crossfaded) + non-overlap append
                 baseTile.setSize(synthesisBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
 
-                // Copy remaining to baseTile start
+                firstReleaseTile.setSize(synthesisBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
+
+                // Copy remaining to first tile start
                 for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
                 {
                     baseTile.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), remainingSamples);
+
+                    // what to put in firstReleaseTile?
+
+                    // the firstReleaseTile should just be the remaining samples in the synthesisBuffer at the time of a note change.
+
+                    if (remainingSynthesisBuffer.getNumSamples() != 0)
+                       firstReleaseTile.copyFrom(ch, 0, remainingSynthesisBuffer, ch, 0, juce::jmin(remainingSamples, remainingSynthesisBuffer.getNumSamples()));
+                    DBG("populated firstReleaseTile: " + juce::String(firstReleaseTile.getNumSamples()) + " samples");
                 }
 
                 // Crossfade the overlap region

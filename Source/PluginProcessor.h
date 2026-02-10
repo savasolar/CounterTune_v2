@@ -199,10 +199,9 @@ private:
     int releaseDetuneIndex = 0;
 
 
+    std::atomic<int> releaseNote{ 60 };
 
-    int releaseNote = 60;
-
-
+    juce::AudioBuffer<float> remainingSynthesisBuffer;
 
 
 
