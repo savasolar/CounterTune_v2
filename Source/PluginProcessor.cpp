@@ -24,9 +24,6 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
     waveform.setSize(2, 1); // dummy initial size
 
     synthesisBuffer.setSize(2, 1);
-    remainingSynthesisBuffer.setSize(2, 1);
-
-    releaseBuffer.setSize(2, 1);
 
 
     offsetFractions.resize(tableSize);
@@ -39,11 +36,6 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
     offsetIndex = 0;
     detuneIndex = 0;
 
-    releaseOffsetIndex = 0;
-    releaseDetuneIndex = 0;
-
-
-//    DBG("check 123");
 }
 
 CounterTune_v2AudioProcessor::~CounterTune_v2AudioProcessor()
@@ -296,32 +288,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     // prepare a note for playback if there's a note number
                     if (generatedMelody[n] >= 0)
                     {
-                        //if (release > 0.0f)
-                        //{
-                        //    releasePlaybackNote = playbackNote;
 
-                        //    // give release envelope the current synthesisBuffer right before it is replaced
-                        //    releaseBuffer.setSize(synthesisBuffer.getNumChannels(), synthesisBuffer.getNumSamples(), false, true, true);
-                        //    int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
-                        //    for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
-                        //    {
-                        //        releaseBuffer.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), remainingSamples);
-                        //    }
-                        //    randomReleaseOffset = static_cast<int>(releaseBuffer.getNumSamples() * offsetFractions[releaseOffsetIndex & (tableSize - 1)]);
-                        //    releaseBuffer_readPos.store(0);
-                        //}
-
-                        if (release > 0.0f)
-                        {
-                            
-                            remainingSynthesisBuffer.setSize(synthesisBuffer.getNumChannels(), synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load(), false, true, true);
-                            for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
-                            {
-                                remainingSynthesisBuffer.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load());
-                            }
-                            releaseBuffer = std::move(remainingSynthesisBuffer);
-                            DBG("releaseBuffer populated " + juce::String(releaseBuffer.getNumSamples()));
-                        }
+                        // start any release buffer here....
 
                         playbackNote = generatedMelody[n];
                         playbackNoteActive = true;
@@ -491,6 +459,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 processed = i + 1;
             }
 
+//            DBG("synthesisBuffer samples: " + juce::String(synthesisBuffer.getNumSamples()) + ", releaseBuffer samples: " + juce::String(releaseBuffer.getNumSamples()));
+
             synthesisBuffer_readPos.store(readPos + processed);
 
             // Apply limiter to the boosted wet signal (ceiling at -11 dB)
@@ -514,10 +484,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                 newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomSynthesisPitch);
 
-                newReleaseTile = pitchShift(voiceBuffer, (releaseNote.load() % 12), static_cast<float>((playbackNote % 12) - (releaseNote.load() % 12)) + randomSynthesisPitch);
-                newReleaseTile.setSize(newReleaseTile.getNumChannels(), newTile.getNumSamples(), true, true, true);
-
-                DBG("newTile size: " + juce::String(newTile.getNumSamples()) + ", newReleaseTile size: " + juce::String(newReleaseTile.getNumSamples()));
 
                 // Calculate overlap and non-overlap first
                 int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
@@ -532,15 +498,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 for (int ch = 0; ch < synthesisBuffer.getNumChannels(); ++ch)
                 {
                     baseTile.copyFrom(ch, 0, synthesisBuffer, ch, synthesisBuffer_readPos.load(), remainingSamples);
-
-                    // what to put in firstReleaseTile?
-
-                    // the firstReleaseTile should just be the remaining samples in the synthesisBuffer at the time of a note change.
-
-                    if (releaseBuffer.getNumSamples() != 0)
-                    {
-                        baseReleaseTile.copyFrom(ch, 0, releaseBuffer, ch, 0, juce::jmin(remainingSamples, releaseBuffer.getNumSamples()));
-                    }
                 }
 
                 // Crossfade the overlap region
@@ -568,36 +525,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                 synthesisBuffer = std::move(baseTile);
                 synthesisBuffer_readPos.store(0);
-
-
-
-                // moving too fast and breaking too much. This should work but it crashes because I forgot some fucking shit:
-
-                //// Crossfade the overlap region
-                //for (int ch = 0; ch < baseReleaseTile.getNumChannels(); ++ch)
-                //{
-                //    float* baseData = baseReleaseTile.getWritePointer(ch);
-                //    const float* newData = newReleaseTile.getReadPointer(ch);
-
-                //    for (int i = 0; i < overlapSamples; ++i)
-                //    {
-                //        float fadeOut = 1.0f - static_cast<float>(i) / static_cast<float>(overlapSamples);
-                //        float fadeIn = static_cast<float>(i) / static_cast<float>(overlapSamples);
-                //        baseData[i] = baseData[i] * fadeOut + newData[i] * fadeIn;
-                //    }
-                //}
-
-                //// Append any non-overlapping part of newTile
-                //if (nonOverlapSamples > 0)
-                //{
-                //    for (int ch = 0; ch < baseReleaseTile.getNumChannels(); ++ch)
-                //    {
-                //        baseReleaseTile.copyFrom(ch, overlapSamples, newReleaseTile, ch, overlapSamples, nonOverlapSamples);
-                //    }
-                //}
-
-                //releaseBuffer = std::move(baseReleaseTile);
-
 
 
 

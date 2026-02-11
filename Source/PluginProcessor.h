@@ -195,16 +195,6 @@ private:
     int detuneIndex = 0;
     constexpr static int tableSize = 512;
 
-    int releaseOffsetIndex = 0;
-    int releaseDetuneIndex = 0;
-
-
-    std::atomic<int> releaseNote{ 60 };
-
-    juce::AudioBuffer<float> remainingSynthesisBuffer;
-
-    juce::AudioBuffer<float> releaseBuffer;
-
 
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (CounterTune_v2AudioProcessor)
