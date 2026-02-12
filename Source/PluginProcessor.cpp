@@ -21,7 +21,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 {
     dywapitch_inittracking(&pitchTracker);
 
-    waveform.setSize(2, 1); // dummy initial size
+    uiWaveform.setSize(2, 1); // dummy initial size
 
     synthesisBuffer.setSize(2, 1);
 
@@ -112,12 +112,6 @@ void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samples
     dryWetMixer.setMixingRule(juce::dsp::DryWetMixingRule::balanced);
 
     flicker.setSampleRate(sampleRate);
-
-    // Configure the limiter
-    juce::dsp::ProcessSpec spec{ sampleRate, static_cast<uint32_t>(samplesPerBlock), static_cast<uint32_t>(getTotalNumOutputChannels()) };
-    limiter.prepare(spec);
-    limiter.setThreshold(limiterCeiling);  // Ceiling at -11 dBFS
-    limiter.setRelease(5.0f);      // Release time in ms (adjust as needed for smoothness)
 
     resetTiming();
 }
@@ -262,11 +256,11 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     if (!detectedNoteNumbers.empty())
                     {
                         capturedMelody[n] = detectedNoteNumbers.back();
-                        currentInputNote = voiceNoteNumber.load() % 12;
-                        if (detectedNoteNumbers.back() >= 0) currentInputNote = detectedNoteNumbers.back() % 12;
+                        uiInputNote = voiceNoteNumber.load() % 12;
+                        if (detectedNoteNumbers.back() >= 0) uiInputNote = detectedNoteNumbers.back() % 12;
 
                         if (generatedMelody[n] >= 0)
-                            currentOutputNote = generatedMelody[n] % 12;
+                            uiOutputNote = generatedMelody[n] % 12;
 
                     }
 
@@ -276,7 +270,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
         }
 
-        // Low-resolution counter for reading generated transcriptions
+        // Low-res playback counter
         for (int n = 0; n < 32; ++n)
         {
             if (phaseCounter >= n * sPs)
@@ -296,7 +290,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                         // prepare synthesis buffer with latest info
                         synthesisBuffer = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
-                        randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
+                        randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
                         synthesisBuffer_readPos.store(0);
                     }
                     else
@@ -408,26 +402,26 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 voiceBuffer.copyFrom(ch, 0, inputAudioBuffer, ch, hiResSampleFirstIdx, hiResNumSamples);
                 bellCurve(voiceBuffer);
 
-                waveform = voiceBuffer;
+                uiWaveform = voiceBuffer;
                 // stylize waveform here
                 // Normalize the waveform to peak at 1.0
                 float peak = 0.0f;
-                for (int ch = 0; ch < waveform.getNumChannels(); ++ch)
+                for (int ch = 0; ch < uiWaveform.getNumChannels(); ++ch)
                 {
-                    peak = std::max(peak, waveform.getMagnitude(ch, 0, waveform.getNumSamples()));
+                    peak = std::max(peak, uiWaveform.getMagnitude(ch, 0, uiWaveform.getNumSamples()));
                 }
 
                 if (peak > 0.0f)
                 {
                     float gain = 1.0f / peak;
-                    waveform.applyGain(gain);
+                    uiWaveform.applyGain(gain);
                 }
             }
 
             resetTiming();
         }
 
-        // High-resolution counter for synthesizing generated transcriptions
+        // High-res playback counter
         juce::dsp::AudioBlock<float> block(buffer);
         dryWetMixer.pushDrySamples(block);
         block.clear();
@@ -468,7 +462,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 //            block.multiplyBy(juce::Decibels::decibelsToGain(limiterCeiling));
 
             // spawn synthesis tiles
-            if (synthesisBuffer_readPos.load() >= randomSynthesisOffset)
+            if (synthesisBuffer_readPos.load() >= randomOffset)
             {
                 juce::AudioBuffer<float> baseTile;
                 juce::AudioBuffer<float> newTile;
@@ -479,10 +473,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 int remainingSamples = synthesisBuffer.getNumSamples() - synthesisBuffer_readPos.load();
                 if (remainingSamples < 0) remainingSamples = 0;
 
-                randomSynthesisPitch = detuneSemitones[detuneIndex & (tableSize - 1)];
+                randomPitch = detuneSemitones[detuneIndex & (tableSize - 1)];
                 ++detuneIndex;
 
-                newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomSynthesisPitch);
+                newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomPitch);
 
 
                 // Calculate overlap and non-overlap first
@@ -529,26 +523,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 
 
-                randomSynthesisOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
+                randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
                 ++offsetIndex;
             }
         }
-
-
-
-
-        //=======================================================================================
-        //=======================================================================================
-        //=============================== Ay carumba! ===========================================
-        //=======================================================================================
-        //=======================================================================================
-        //=======================================================================================
-        //=======================================================================================
-
-
-
-
-
 
         dryWetMixer.setWetMixProportion(getMixFloat());
         dryWetMixer.mixWetSamples(block);

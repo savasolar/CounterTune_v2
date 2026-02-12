@@ -56,8 +56,8 @@ private:
 
             g.setColour(juce::Colours::white);
 
-            float leftPoint = (11.0f - static_cast<float>(audioProcessor.currentInputNote)) * 43.64f;
-            float rightPoint = (11.0f - static_cast<float>(audioProcessor.currentOutputNote)) * 43.64f;
+            float leftPoint = (11.0f - static_cast<float>(audioProcessor.uiInputNote)) * 43.64f;
+            float rightPoint = (11.0f - static_cast<float>(audioProcessor.uiOutputNote)) * 43.64f;
 
             // Fixed background square (in local component coords)
             juce::Rectangle<float> fixedRect = getLocalBounds().toFloat();

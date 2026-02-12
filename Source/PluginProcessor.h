@@ -36,12 +36,10 @@ public:
 
     juce::AudioProcessorValueTreeState parameters;
 
-    juce::AudioBuffer<float> waveform;
+    juce::AudioBuffer<float> uiWaveform;
 
-    int currentInputNote = -1;
-    int currentOutputNote = -1;
-
-    bool playbackNoteActive = false;
+    int uiInputNote = -1;
+    int uiOutputNote = -1;
 
 private:
 
@@ -161,39 +159,46 @@ private:
         }
     }
 
-    // Audio playback utilities
+    // Audio playback utilities - main voice and synthesis buffers
     juce::AudioBuffer<float> voiceBuffer;
     std::atomic<int> newVoiceNoteNumber{ -1 };
     std::atomic<int> voiceNoteNumber{ -1 };
-    int randomSynthesisOffset = 0;
-    float randomSynthesisPitch = 0.0f;
-
-
+    int randomOffset = 0;
+    float randomPitch = 0.0f;
     juce::AudioBuffer<float> synthesisBuffer;
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
+    bool playbackNoteActive = false;
+
+    // Audio playback utilities - envelope voice and synthesis buffers
+    juce::AudioBuffer<float> r_voiceBuffer;
+    std::atomic<int> r_newVoiceNoteNumber{ -1 };
+    std::atomic<int> r_voiceNoteNumber{ -1 };
+    int r_randomOffset = 0;
+    float r_randomPitch = 0.0f;
+    juce::AudioBuffer<float> r_synthesisBuffer;
+    std::atomic<int> r_synthesisBuffer_readPos{ 0 };
+    int r_playbackNote = -1;
+    bool r_playbackNoteActive = false;
 
     juce::dsp::DryWetMixer<float> dryWetMixer;
     juce::ADSR flicker;
     juce::ADSR::Parameters flickerParams;
     std::atomic<bool> useFlicker{ false };
 
-    juce::dsp::Limiter<float> limiter;
-    float limiterGain = 8.0f;
-    float limiterCeiling = -12.0f;
-
+    // random number lookup tables
     juce::Random rnd;
-
-    float attack = 0.0f;  // Percentage of 0-2 seconds before note end
-    float decay = 0.0f;  // Percentage of 0-2 seconds before note end
-    float sustain = 1.0f;  // Percentage of 0-1 gain coefficient
-    float release = 0.5f;  // Percentage of 0-2 seconds after note end
-
     std::vector<float> offsetFractions;
     std::vector<float> detuneSemitones;
     int offsetIndex = 0;
     int detuneIndex = 0;
     constexpr static int tableSize = 512;
+
+    // adsr vars for future use
+    float attack = 0.0f;  // * 2 seconds before note end
+    float decay = 0.0f;  // * 2 seconds before note end
+    float sustain = 1.0f;  // Gain coefficient
+    float release = 0.5f;  // * 2 seconds after note end
 
 
 

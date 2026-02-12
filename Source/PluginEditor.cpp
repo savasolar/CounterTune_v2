@@ -20,7 +20,7 @@ CounterTune_v2AudioProcessorEditor::~CounterTune_v2AudioProcessorEditor()
 
 void CounterTune_v2AudioProcessorEditor::timerCallback()
 {
-    waveform.setAudioBuffer(&audioProcessor.waveform, audioProcessor.waveform.getNumSamples());
+    waveform.setAudioBuffer(&audioProcessor.uiWaveform, audioProcessor.uiWaveform.getNumSamples());
 
     
     bool isFlat = waveform.isFlat();
