@@ -169,6 +169,9 @@ private:
     std::atomic<int> synthesisBuffer_readPos{ 0 };
     int playbackNote = -1;
     bool playbackNoteActive = false;
+    juce::ADSR flicker;
+    juce::ADSR::Parameters flickerParams;
+    std::atomic<bool> useFlicker{ false };
 
     // Audio playback utilities - envelope voice and synthesis buffers
     juce::AudioBuffer<float> r_voiceBuffer;
@@ -180,11 +183,11 @@ private:
     std::atomic<int> r_synthesisBuffer_readPos{ 0 };
     int r_playbackNote = -1;
     bool r_playbackNoteActive = false;
+    juce::ADSR tailEnvelope;
+    juce::ADSR::Parameters tailEnvelopeParams;
+    std::atomic<bool> useTailEnvelope{ false };
 
     juce::dsp::DryWetMixer<float> dryWetMixer;
-    juce::ADSR flicker;
-    juce::ADSR::Parameters flickerParams;
-    std::atomic<bool> useFlicker{ false };
 
     // random number lookup tables
     juce::Random rnd;
