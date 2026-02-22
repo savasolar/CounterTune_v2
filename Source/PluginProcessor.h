@@ -61,6 +61,7 @@ private:
     inline bool isExecuted(uint32_t& mask, int step) const { jassert(step >= 0 && step < 32); return (mask & (1u << step)) != 0; }
     inline bool allExecuted(uint32_t& mask) const { return mask == 0xFFFFFFFFu; }
     
+    void isolateBestNote();
     void resetTiming();
 
     // Pitch detection utilities
@@ -195,6 +196,12 @@ private:
     std::vector<float> detuneSemitones;
     int offsetIndex = 0;
     int detuneIndex = 0;
+
+    std::vector<float> r_offsetFractions;
+    std::vector<float> r_detuneSemitones;
+    int r_offsetIndex = 0;
+    int r_detuneIndex = 0;
+
     constexpr static int tableSize = 512;
 
     // adsr vars for future use

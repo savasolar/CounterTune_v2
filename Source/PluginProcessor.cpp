@@ -25,16 +25,25 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
 
     synthesisBuffer.setSize(2, 1);
 
+    r_synthesisBuffer.setSize(2, 1); // init release buffer
+
 
     offsetFractions.resize(tableSize);
     detuneSemitones.resize(tableSize);
+    r_offsetFractions.resize(tableSize);
+    r_detuneSemitones.resize(tableSize);
     for (int i = 0; i < tableSize; ++i)
     {
         offsetFractions[i] = (rnd.nextInt(9) + 8) * 0.01f;
         detuneSemitones[i] = (rnd.nextInt(21) * 0.01f) - 0.10f;
+        r_offsetFractions[i] = offsetFractions[i];
+        r_detuneSemitones[i] = detuneSemitones[i];
     }
     offsetIndex = 0;
     detuneIndex = 0;
+    r_offsetIndex = 0;
+    r_detuneIndex = 0;
+
 
 }
 
@@ -113,6 +122,8 @@ void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samples
 
     flicker.setSampleRate(sampleRate);
 
+    tailEnvelope.setSampleRate(sampleRate); // set for tail
+
     resetTiming();
 }
 
@@ -144,6 +155,86 @@ bool CounterTune_v2AudioProcessor::isBusesLayoutSupported (const BusesLayout& la
 }
 #endif
 
+void CounterTune_v2AudioProcessor::isolateBestNote()
+{
+    // Find the first occurrence of over 5 consecutive note numbers in detectedNoteNumbers & put it in lowResIsolatedChunks.
+    std::vector<int> lowResIsolatedChunks;
+    int lowResChunkFirstIdx = -1;
+    int lowResChunkLastIdx = -1;
+
+    if (detectedNoteNumbers.size() > 5)
+    {
+        size_t currentStart = 0;
+        for (size_t i = 1; i <= detectedNoteNumbers.size(); ++i)
+        {
+            if (i == detectedNoteNumbers.size() || detectedNoteNumbers[i] != detectedNoteNumbers[currentStart])
+            {
+                size_t length = i - currentStart;
+                if (length > 5)
+                {
+                    lowResIsolatedChunks.assign(detectedNoteNumbers.begin() + currentStart, detectedNoteNumbers.begin() + i);
+                    lowResChunkFirstIdx = static_cast<int>(currentStart);
+                    lowResChunkLastIdx = static_cast<int>(i - 1);
+                    break;
+                }
+                currentStart = i;
+            }
+        }
+    }
+
+    // place the first 5 indices of lowResIsolatedChunks into midResIsolatedChunks
+    std::vector<int> midResIsolatedChunks;
+    int midResChunkFirstIdx = lowResChunkFirstIdx;
+    int midResChunkLastIdx = lowResChunkFirstIdx + 4;
+
+    if (lowResIsolatedChunks.size() >= 5)
+    {
+        midResIsolatedChunks.assign(lowResIsolatedChunks.begin(), lowResIsolatedChunks.begin() + 5);
+    }
+
+    // populate hiResIsolatedChunks with the middle 3 indices of midResIsolatedChunks
+    std::vector<int> hiResIsolatedChunks;
+    int hiResChunkFirstIdx = midResChunkFirstIdx + 1;
+    int hiResChunkLastIdx = midResChunkLastIdx - 1;
+    hiResIsolatedChunks.assign(midResIsolatedChunks.begin() + 1, midResIsolatedChunks.begin() + 4);
+
+    int lowResSampleFirstIdx = lowResChunkFirstIdx * 1024;
+    int lowResSampleLastIdx = lowResChunkLastIdx * 1024;
+    int lowResNumSamples = lowResSampleLastIdx - lowResSampleFirstIdx + 1024;
+    int midResSampleFirstIdx = midResChunkFirstIdx * 1024;
+    int midResSampleLastIdx = midResChunkLastIdx * 1024;
+    int midResNumSamples = midResSampleLastIdx - midResSampleFirstIdx + 1024;
+    int hiResSampleFirstIdx = hiResChunkFirstIdx * 1024;
+    int hiResSampleLastIdx = hiResChunkLastIdx * 1024;
+    int hiResNumSamples = hiResSampleLastIdx - hiResSampleFirstIdx + 1024;
+
+    newVoiceNoteNumber.store(hiResIsolatedChunks[1]);
+    voiceNoteNumber.store(newVoiceNoteNumber);
+
+    // Generate voiceBuffer (single tile)
+    voiceBuffer.setSize(inputAudioBuffer.getNumChannels(), hiResNumSamples, false, true, true);
+    for (int ch = 0; ch < inputAudioBuffer.getNumChannels(); ++ch)
+    {
+        voiceBuffer.copyFrom(ch, 0, inputAudioBuffer, ch, hiResSampleFirstIdx, hiResNumSamples);
+        bellCurve(voiceBuffer);
+
+        uiWaveform = voiceBuffer;
+        // stylize waveform here
+        // Normalize the waveform to peak at 1.0
+        float peak = 0.0f;
+        for (int ch = 0; ch < uiWaveform.getNumChannels(); ++ch)
+        {
+            peak = std::max(peak, uiWaveform.getMagnitude(ch, 0, uiWaveform.getNumSamples()));
+        }
+
+        if (peak > 0.0f)
+        {
+            float gain = 1.0f / peak;
+            uiWaveform.applyGain(gain);
+        }
+    }
+}
+
 void CounterTune_v2AudioProcessor::resetTiming()
 {
     if (!detectedFrequencies.empty() && std::all_of(detectedFrequencies.begin(), detectedFrequencies.end(), [](float f) { return f <= 0.0f; }))
@@ -173,6 +264,13 @@ void CounterTune_v2AudioProcessor::resetTiming()
     flickerParams.sustain = 1.0f;
     flickerParams.release = static_cast<float>(sPs) / static_cast<float>(getSampleRate());
     flicker.setParameters(flickerParams);
+
+    // duplicate for release envelope
+    tailEnvelopeParams.attack = 0.0f;
+    tailEnvelopeParams.decay = 0.0f;
+    tailEnvelopeParams.sustain = 1.0f;
+    tailEnvelopeParams.release = release;
+    tailEnvelope.setParameters(tailEnvelopeParams);
 }
 
 void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
@@ -232,21 +330,19 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
     if (triggerCycle)
     {
+        // phase counting variables
+        int phaseAdvance = juce::jmin(((sPs * 32 + std::max(sampleDrift, 0)) - phaseCounter), numSamples);
+
         // High-resolution counter for recording input audio buffer
         int spaceLeft = inputAudioBuffer_samplesToRecord.load() - inputAudioBuffer_writePos.load();
         int toCopy = juce::jmin(numSamples, spaceLeft);
-
         for (int ch = 0; ch < juce::jmin(getTotalNumInputChannels(), inputAudioBuffer.getNumChannels()); ++ch)
         {
             inputAudioBuffer.copyFrom(ch, inputAudioBuffer_writePos.load(), buffer, ch, 0, toCopy);
         }
-
         inputAudioBuffer_writePos.store(inputAudioBuffer_writePos.load() + toCopy);
 
         // Low-resolution counter for symbolically transcribing input audio
-        int captureSpaceLeft = (sPs * 32 + std::max(sampleDrift, 0)) - phaseCounter;
-        int captureToCopy = juce::jmin(captureSpaceLeft, numSamples);
-
         for (int n = 0; n < 32; ++n)
         {
             if (phaseCounter > (n + 0.5) * sPs)
@@ -256,12 +352,11 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     if (!detectedNoteNumbers.empty())
                     {
                         capturedMelody[n] = detectedNoteNumbers.back();
+
+                        // set ui input and output notes at same time
                         uiInputNote = voiceNoteNumber.load() % 12;
                         if (detectedNoteNumbers.back() >= 0) uiInputNote = detectedNoteNumbers.back() % 12;
-
-                        if (generatedMelody[n] >= 0)
-                            uiOutputNote = generatedMelody[n] % 12;
-
+                        if (generatedMelody[n] >= 0) uiOutputNote = generatedMelody[n] % 12;
                     }
 
                     sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
@@ -282,11 +377,29 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     // prepare a note for playback if there's a note number
                     if (generatedMelody[n] >= 0)
                     {
+                        playbackNote = generatedMelody[n];
+                        playbackNoteActive = true;
+
+
 
                         // start any release buffer here....
 
-                        playbackNote = generatedMelody[n];
-                        playbackNoteActive = true;
+                        if (release > 0.0f)
+                        {
+                            useTailEnvelope.store(true);
+
+
+                            r_synthesisBuffer = synthesisBuffer;
+                            r_randomOffset = static_cast<int>(r_synthesisBuffer.getNumSamples() * r_offsetFractions[r_offsetIndex & (tableSize - 1)]);
+                            r_synthesisBuffer_readPos.store(synthesisBuffer_readPos.load());
+
+                        }
+                        else
+                        {
+                            useTailEnvelope.store(false);
+                        }
+
+
 
                         // prepare synthesis buffer with latest info
                         synthesisBuffer = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
@@ -319,9 +432,9 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             }
         }
 
-        phaseCounter += captureToCopy;
+        phaseCounter += phaseAdvance;
 
-        // Low-resolution counter for stopping or resetting timing
+        // Low-res counter for stopping or resetting timing
 
         if (phaseCounter >= sPs * 32 + sampleDrift)
         {
@@ -339,84 +452,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 isFirstCycle = false;
             }
 
-            // isolate best chunks in detectedNoteNumbers
-            
-            // Find the first occurrence of over 5 consecutive note numbers in detectedNoteNumbers & put it in lowResIsolatedChunks.
-            std::vector<int> lowResIsolatedChunks;
-            int lowResChunkFirstIdx = -1;
-            int lowResChunkLastIdx = -1;
-
-            if (detectedNoteNumbers.size() > 5)
-            {
-                size_t currentStart = 0;
-                for (size_t i = 1; i <= detectedNoteNumbers.size(); ++i)
-                {
-                    if (i == detectedNoteNumbers.size() || detectedNoteNumbers[i] != detectedNoteNumbers[currentStart])
-                    {
-                        size_t length = i - currentStart;
-                        if (length > 5)
-                        {
-                            lowResIsolatedChunks.assign(detectedNoteNumbers.begin() + currentStart, detectedNoteNumbers.begin() + i);
-                            lowResChunkFirstIdx = static_cast<int>(currentStart);
-                            lowResChunkLastIdx = static_cast<int>(i - 1);
-                            break;
-                        }
-                        currentStart = i;
-                    }
-                }
-            }
-
-            // place the first 5 indices of lowResIsolatedChunks into midResIsolatedChunks
-            std::vector<int> midResIsolatedChunks;
-            int midResChunkFirstIdx = lowResChunkFirstIdx;
-            int midResChunkLastIdx = lowResChunkFirstIdx + 4;
-
-            if (lowResIsolatedChunks.size() >= 5)
-            {
-                midResIsolatedChunks.assign(lowResIsolatedChunks.begin(), lowResIsolatedChunks.begin() + 5);
-            }
-
-            // populate hiResIsolatedChunks with the middle 3 indices of midResIsolatedChunks
-            std::vector<int> hiResIsolatedChunks;
-            int hiResChunkFirstIdx = midResChunkFirstIdx + 1;
-            int hiResChunkLastIdx = midResChunkLastIdx - 1;
-            hiResIsolatedChunks.assign(midResIsolatedChunks.begin() + 1, midResIsolatedChunks.begin() + 4);
-
-            int lowResSampleFirstIdx = lowResChunkFirstIdx * 1024;
-            int lowResSampleLastIdx = lowResChunkLastIdx * 1024;
-            int lowResNumSamples = lowResSampleLastIdx - lowResSampleFirstIdx + 1024;
-            int midResSampleFirstIdx = midResChunkFirstIdx * 1024;
-            int midResSampleLastIdx = midResChunkLastIdx * 1024;
-            int midResNumSamples = midResSampleLastIdx - midResSampleFirstIdx + 1024;
-            int hiResSampleFirstIdx = hiResChunkFirstIdx * 1024;
-            int hiResSampleLastIdx = hiResChunkLastIdx * 1024;
-            int hiResNumSamples = hiResSampleLastIdx - hiResSampleFirstIdx + 1024;
-
-            newVoiceNoteNumber.store(hiResIsolatedChunks[1]);
-            voiceNoteNumber.store(newVoiceNoteNumber);
-
-            // Generate voiceBuffer (single tile)
-            voiceBuffer.setSize(inputAudioBuffer.getNumChannels(), hiResNumSamples, false, true, true);
-            for (int ch = 0; ch < inputAudioBuffer.getNumChannels(); ++ch)
-            {
-                voiceBuffer.copyFrom(ch, 0, inputAudioBuffer, ch, hiResSampleFirstIdx, hiResNumSamples);
-                bellCurve(voiceBuffer);
-
-                uiWaveform = voiceBuffer;
-                // stylize waveform here
-                // Normalize the waveform to peak at 1.0
-                float peak = 0.0f;
-                for (int ch = 0; ch < uiWaveform.getNumChannels(); ++ch)
-                {
-                    peak = std::max(peak, uiWaveform.getMagnitude(ch, 0, uiWaveform.getNumSamples()));
-                }
-
-                if (peak > 0.0f)
-                {
-                    float gain = 1.0f / peak;
-                    uiWaveform.applyGain(gain);
-                }
-            }
+            // Isolate best note in the latest cycle
+            isolateBestNote();
 
             resetTiming();
         }
@@ -432,8 +469,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
             int numSamples = buffer.getNumSamples();
             int synthesisBufferSize = synthesisBuffer.getNumSamples();
             int readPos = synthesisBuffer_readPos.load();
-
             int processed = 0;
+
             for (int i = 0; i < numSamples; ++i)
             {
                 int currentPos = readPos + i;
@@ -443,23 +480,15 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 float gain = 1.0f;
                 if (useFlicker.load()) gain = flicker.getNextSample();
 
-//                float plus9decibels = juce::Decibels::decibelsToGain(limiterGain);
-
                 for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
                 {
-                    buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain/* * plus9decibels*/);
+                     buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain/* * plus9decibels*/);
                 }
 
                 processed = i + 1;
             }
 
-//            DBG("synthesisBuffer samples: " + juce::String(synthesisBuffer.getNumSamples()) + ", releaseBuffer samples: " + juce::String(releaseBuffer.getNumSamples()));
-
             synthesisBuffer_readPos.store(readPos + processed);
-
-            // Apply limiter to the boosted wet signal (ceiling at -11 dB)
-//            limiter.process(juce::dsp::ProcessContextReplacing<float>(block));
-//            block.multiplyBy(juce::Decibels::decibelsToGain(limiterCeiling));
 
             // spawn synthesis tiles
             if (synthesisBuffer_readPos.load() >= randomOffset)
@@ -526,7 +555,79 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
                 ++offsetIndex;
             }
+                        
         }
+
+
+        // tile tail to output buffer
+        if (r_synthesisBuffer.getNumSamples() > 0)
+        {
+            int numSamples = buffer.getNumSamples();
+            int r_synthesisBufferSize = r_synthesisBuffer.getNumSamples();
+            int readPos = r_synthesisBuffer_readPos.load();
+            int processed = 0;
+
+            for (int i = 0; i < numSamples; ++i)
+            {
+                int currentPos = readPos + i;
+
+                if (currentPos >= r_synthesisBufferSize) break;
+
+                float gain = 1.0f;
+                if (useTailEnvelope.load()) gain = tailEnvelope.getNextSample();
+
+                for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
+                {
+                    buffer.addSample(ch, i, r_synthesisBuffer.getSample(ch, currentPos) * gain/* * plus9decibels*/);
+                }
+
+                processed = i + 1;
+            }
+
+            r_synthesisBuffer_readPos.store(readPos + processed);
+
+            // spawn tail tiles
+            if (r_synthesisBuffer_readPos.load() >= r_randomOffset)
+            {
+                juce::AudioBuffer<float> baseTile;
+                juce::AudioBuffer<float> newTile;
+
+                int remainingSamples = r_synthesisBuffer.getNumSamples() - r_synthesisBuffer_readPos.load();
+                if (remainingSamples < 0) remainingSamples = 0;
+
+                r_randomPitch = r_detuneSemitones[r_detuneIndex & (tableSize - 1)];
+                ++r_detuneIndex;
+
+                newTile = pitchShift(
+                    voiceBuffer, 
+                    (voiceNoteNumber.load() % 12), 
+                    static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + r_randomPitch);
+
+                // calculate overlap and non-overlap
+                int overlapSamples = juce::jmin(remainingSamples, newTile.getNumSamples());
+                int nonOverlapSamples = newTile.getNumSamples() - overlapSamples;
+                
+                // Set size correctly: remaining (to be crossfaded) + non-overlap append
+                baseTile.setSize(r_synthesisBuffer.getNumChannels(), remainingSamples + nonOverlapSamples, false, true, true);
+
+                // Copy remaining to first tile start
+                for (int ch = 0; ch < r_synthesisBuffer.getNumChannels(); ++ch)
+                {
+                    baseTile.copyFrom(ch, 0, r_synthesisBuffer, ch, r_synthesisBuffer_readPos.load(), remainingSamples);
+                }
+
+
+            }
+
+        }
+
+
+
+
+        // Add limiter to wet signal ...
+        // ...
+
+
 
         dryWetMixer.setWetMixProportion(getMixFloat());
         dryWetMixer.mixWetSamples(block);
