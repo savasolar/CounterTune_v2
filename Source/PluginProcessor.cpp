@@ -120,6 +120,11 @@ void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samples
     dryWetMixer.prepare(juce::dsp::ProcessSpec{ sampleRate, static_cast<std::uint32_t> (samplesPerBlock), static_cast<std::uint32_t> (getTotalNumOutputChannels()) });
     dryWetMixer.setMixingRule(juce::dsp::DryWetMixingRule::balanced);
 
+    juce::dsp::ProcessSpec spec{ sampleRate, static_cast<std::uint32_t>(samplesPerBlock), static_cast<std::uint32_t>(getTotalNumOutputChannels()) };
+    wetLimiter.prepare(spec);
+    wetLimiter.setThreshold(-11.0f);
+    wetLimiter.setRelease(5.0f);
+
     flicker.setSampleRate(sampleRate);
 
     tailEnvelope.setSampleRate(sampleRate); // set for tail
@@ -547,7 +552,14 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 
         // Add limiter to wet signal ...
-        // ...
+        //juce::dsp::ProcessContextReplacing<float> limiterContext(block);
+        //wetLimiter.process(limiterContext);
+
+        const float gainBoost = juce::Decibels::decibelsToGain(9.0f);
+        block.multiplyBy(gainBoost);   // +9 dB on wet only
+
+        juce::dsp::ProcessContextReplacing<float> limiterContext(block);
+        wetLimiter.process(limiterContext);
 
 
 

@@ -4,6 +4,7 @@
 
 #include <JuceHeader.h>
 #include "dywapitchtrack.h"
+//#include "SimpleCompressor.h"
 
 class CounterTune_v2AudioProcessor  : public juce::AudioProcessor
 {
@@ -45,7 +46,7 @@ private:
 
     // Timing utilities
 
-    float bpm = 240.0f;  // high tempos been crashy
+    float bpm = 120.0f;  // high tempos been crashy
     float speed = 1.00;
     int sPs = 0;
     int sampleDrift = 0;
@@ -189,6 +190,9 @@ private:
     std::atomic<bool> useTailEnvelope{ false };
 
     juce::dsp::DryWetMixer<float> dryWetMixer;
+
+//    SimpleCompressor wetLimiter;
+    juce::dsp::Limiter<float> wetLimiter;
 
     // random number lookup tables
     juce::Random rnd;
