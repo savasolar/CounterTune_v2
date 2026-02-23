@@ -45,7 +45,7 @@ private:
 
     // Timing utilities
 
-    float bpm = 120.0f;  // high tempos been crashy
+    float bpm = 240.0f;  // high tempos been crashy
     float speed = 1.00;
     int sPs = 0;
     int sampleDrift = 0;
@@ -88,7 +88,7 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{59, -2, -2, -2, 61, -2, -2, -2, 63, -2, -2, -2, 64, -2, -2, -2, 66, -2, -2, -2, 68, -2, -2, -2, 70, -2, -2, -2, 71, -2, -2, -2 };
+    std::vector<int> generatedMelody{64, -2, 64, -2, 64, -2, 64, -2, 62, -2, 62, -2, 62, -2, -62, -2, 60, -2, 60, -2, 60, -2, 60, -2, 59, -2, 59, -2, 59, -2, 59, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     
@@ -208,7 +208,7 @@ private:
     float attack = 0.0f;  // * 2 seconds before note end
     float decay = 0.0f;  // * 2 seconds before note end
     float sustain = 1.0f;  // Gain coefficient
-    float release = 0.5f;  // * 2 seconds after note end
+    float release = 0.0f;  // * 2 seconds after note end
 
 
 
