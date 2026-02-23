@@ -33,18 +33,31 @@ public:
 
     float getMixFloat() const { return *parameters.getRawParameterValue("mix"); }
     void setMixFloat(float newMixFloat) { auto* param = parameters.getParameter("mix"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newMixFloat)); }
+    
+    float getTempoFloat() const { return *parameters.getRawParameterValue("tempo"); }
+    void setTempoFloat(float newTempoFloat) { auto* param = parameters.getParameter("tempo"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newTempoFloat)); }
+
+    int getPeriodInt() const { return *parameters.getRawParameterValue("period"); }
+    void setPeriodInt(int newPeriodInt) { auto* param = parameters.getParameter("period"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newPeriodInt)); }
+
+    int getDensityInt() const { return *parameters.getRawParameterValue("density"); }
+    void setDensityInt(int newDensityInt) { auto* param = parameters.getParameter("density"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newDensityInt)); }
+
+    int getKeyInt() const { return *parameters.getRawParameterValue("key"); }
+    void setKeyInt(int newKeyInt) { auto* param = parameters.getParameter("key"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newKeyInt)); }
+
+    int getScaleInt() const { return *parameters.getRawParameterValue("scale"); }
+    void setScaleInt(int newScaleInt) { auto* param = parameters.getParameter("scale"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newScaleInt)); }
+
     int getOctaveInt() const { return *parameters.getRawParameterValue("octave"); }
     void setOctaveInt(int newOctaveInt) { auto* param = parameters.getParameter("octave"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newOctaveInt)); }
 
 
-
-
-    juce::AudioProcessorValueTreeState parameters;
-
     juce::AudioBuffer<float> uiWaveform;
-
     int uiInputNote = -1;
     int uiOutputNote = -1;
+
+    juce::AudioProcessorValueTreeState parameters;
 
 private:
 
@@ -52,7 +65,7 @@ private:
 
     float bpm = 140.0f;  // high tempos been crashy
     float speed = 1.00;
-    int cycleLength = 2; // was 32
+    int cycleLength = 2 ; // was 32
     int sPs = 0;
     int sampleDrift = 0;
     bool isFirstCycle = true;
@@ -95,7 +108,8 @@ private:
 
     // Melody generation utilities
     void generateMelody();
-    std::vector<int> generatedMelody{60, 62, 64, 65, 67, 69, 71, 72, -2, -2, -2, -2, 72, -2, 71, -2, 69, 69, 67, -2, 67, -2, 60, -2, 59, -2, 59, -2, 59, -2, 59, -2 };
+    std::vector<int> generatedMelody = std::vector<int>(32, -2);
+//    std::vector<int> generatedMelody{60, 62, 64, 65, 67, 69, 71, 72, -2, -2, -2, -2, 72, -2, 71, -2, 69, 69, 67, -2, 67, -2, 60, -2, 59, -2, 59, -2, 59, -2, 59, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     

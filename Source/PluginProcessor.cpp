@@ -16,6 +16,11 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
         parameters(*this, nullptr, "Parameters",
         {
             std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.15f),
+            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"tempo", 1}, "Tempo", 60, 240, 140),
+            std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"period", 1}, "Period", 1, 32, 2),
+            std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"density", 1}, "Density", 1, 6, 6),
+            std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"key", 1}, "Key", 0, 11, 7),
+            std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"scale", 1}, "Scale", 1, 4, 1),
             std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"octave", 1}, "Octave", -4, 4, 0)
         })
 #endif
@@ -131,6 +136,7 @@ void CounterTune_v2AudioProcessor::prepareToPlay (double sampleRate, int samples
     tailEnvelope.setSampleRate(sampleRate); // set for tail
 
     resetTiming();
+    generateMelody();
 }
 
 void CounterTune_v2AudioProcessor::releaseResources()
@@ -265,6 +271,9 @@ void CounterTune_v2AudioProcessor::resetTiming()
     inputAudioBuffer_writePos.store(0);
     phaseCounter = 0;
     std::fill(capturedMelody.begin(), capturedMelody.end(), -1);
+
+    bpm = getTempoFloat();
+    cycleLength = getPeriodInt();
 
     float currentBpm = bpm;
     float currentSpeed = speed;
@@ -588,10 +597,43 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 void CounterTune_v2AudioProcessor::generateMelody()
 {
-    // populate each index of the generatedMelody vector with a random number from 60 to 72
-    for (auto& note : generatedMelody)
+    //// populate each index of the generatedMelody vector with a random number from 60 to 72
+    //for (auto& note : generatedMelody)
+    //{
+    //    note = 60 + rnd.nextInt(13);  // rnd.nextInt(13) gives 0-12 - 60-72 inclusive
+    //}
+
+    int rootNote = 60 + getKeyInt();
+
+    // Scale note offsets
+    const std::vector<std::vector<int>> scaleDefs = {
+        {}, // dummy index 0
+        {0, 2, 4, 5, 7, 9, 11}, // 1 = major
+        {0, 2, 4, 5, 7, 8, 11}, // 2 = harmonic major
+        {0, 2, 4, 7, 9}, // 3 = pentatonic
+        {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11} // 4 = chromatic
+    };
+
+    const auto& intervals = scaleDefs[getScaleInt()];
+
+    std::vector<int> availableNotes;
+    for (int offset : intervals)
+        availableNotes.push_back(rootNote + offset);
+
+    // rhythmic density step sizes
+    const int stepSizes[7] = { 0, 32, 16, 8, 4, 2, 1 };
+    int step = stepSizes[getDensityInt()];
+
+    // fill generatedMelody
+    generatedMelody.assign(32, -2);
+
+    for (int i = 0; i < 32; i += step)
     {
-        note = 60 + rnd.nextInt(13);  // rnd.nextInt(13) gives 0-12 - 60-72 inclusive
+        if (!availableNotes.empty())
+        {
+            int idx = rnd.nextInt(static_cast<int>(availableNotes.size()));
+            generatedMelody[i] = availableNotes[idx];
+        }
     }
 }
 

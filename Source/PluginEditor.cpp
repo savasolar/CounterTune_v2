@@ -6,10 +6,12 @@
 CounterTune_v2AudioProcessorEditor::CounterTune_v2AudioProcessorEditor (CounterTune_v2AudioProcessor& p)
     : AudioProcessorEditor (&p), audioProcessor (p), waveform(audioProcessor), parameters(p.parameters)
 {
-    setSize (540, 540);
+    setSize (720, 540);
+
+    setWantsKeyboardFocus(true);
 
     addAndMakeVisible(waveform);
-    waveform.setBounds(60, 0, 480, 480);
+    waveform.setBounds(240, 0, 480, 480);
     backgroundImage = juce::ImageCache::getFromMemory(BinaryData::uiv7_png, BinaryData::uiv7_pngSize);
     setupParams();
     startTimerHz(30);
@@ -52,10 +54,10 @@ void CounterTune_v2AudioProcessorEditor::setupParams()
     // MIX
     addAndMakeVisible(mixTitleLabel);
 #ifdef JUCE_MAC
-    mixTitleLabel.setBounds(579, -1, 60, 20);
+    mixTitleLabel.setBounds(579, -1, 240, 20);
     mixTitleLabel.setFont(getCustomFont(14.0f));
 #else
-    mixTitleLabel.setBounds(0, 0, 60, 20);
+    mixTitleLabel.setBounds(0, 0, 240, 20);
     mixTitleLabel.setFont(getCustomFont(18.0f));
 #endif
     mixTitleLabel.setJustification(juce::Justification::centred);
@@ -75,17 +77,17 @@ void CounterTune_v2AudioProcessorEditor::setupParams()
     mixKnob.setColour(juce::Slider::trackColourId, foregroundColor);
     mixKnob.setColour(juce::Slider::thumbColourId, foregroundColor);
     mixKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    mixKnob.setBounds(0, 20, 60, 20);
+    mixKnob.setBounds(0, 20, 240, 20);
     mixKnob.setRange(0.0, 1.0, 0.01);
     mixKnob.onValueChange = [this]() { updateMixValueLabel(); };
     addAndMakeVisible(mixKnob);
 
     addAndMakeVisible(mixValueLabel);
 #ifdef JUCE_MAC
-    mixValueLabel.setBounds(0, 39, 60, 16);
+    mixValueLabel.setBounds(0, 39, 240, 16);
     mixValueLabel.setFont(getCustomFont(14.0f));
 #else
-    mixValueLabel.setBounds(0, 40, 60, 16);
+    mixValueLabel.setBounds(0, 40, 240, 16);
     mixValueLabel.setFont(getCustomFont(18.0f));
 #endif
     mixValueLabel.setJustification(juce::Justification::centredTop);
