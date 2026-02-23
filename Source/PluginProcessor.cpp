@@ -359,6 +359,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                         if (generatedMelody[n] >= 0) uiOutputNote = generatedMelody[n] % 12;
                     }
 
+//                    DBG(capturedMelody[n]);
+
                     sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
                     setExecuted(symbolExecuted, n);
                 }
@@ -374,6 +376,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 {
                     useFlicker.store(false);
 
+                    // DBG a running stream of generatedMelody values                    
+                    DBG(juce::String(generatedMelody[n]));
+
+
                     // prepare a note for playback if there's a note number
                     if (generatedMelody[n] >= 0)
                     {
@@ -381,14 +387,15 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                         playbackNoteActive = true;
 
 
-
                         // start any release buffer here....
+
+                        DBG("note end detected -- play tail");
 
                         if (release > 0.0f)
                         {
                             useTailEnvelope.store(true);
 
-
+                            // populate r_synthesisBuffer with synthesisBuffer before synthesisBuffer is updated to latest info
                             r_synthesisBuffer = synthesisBuffer;
                             r_randomOffset = static_cast<int>(r_synthesisBuffer.getNumSamples() * r_offsetFractions[r_offsetIndex & (tableSize - 1)]);
                             r_synthesisBuffer_readPos.store(synthesisBuffer_readPos.load());
@@ -452,7 +459,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 isFirstCycle = false;
             }
 
-            // Isolate best note in the latest cycle
             isolateBestNote();
 
             resetTiming();
@@ -482,7 +488,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
                 for (int ch = 0; ch < juce::jmin(buffer.getNumChannels(), synthesisBuffer.getNumChannels()); ++ch)
                 {
-                     buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain/* * plus9decibels*/);
+//                     buffer.addSample(ch, i, synthesisBuffer.getSample(ch, currentPos) * gain/* * plus9decibels*/);
                 }
 
                 processed = i + 1;
