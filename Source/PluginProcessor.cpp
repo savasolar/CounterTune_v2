@@ -15,7 +15,7 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
                        ),
         parameters(*this, nullptr, "Parameters",
         {
-            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.5f)
+            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.1f)
         })
 #endif
 {
@@ -187,6 +187,15 @@ void CounterTune_v2AudioProcessor::isolateBestNote()
         }
     }
 
+
+    // BAIL OUT early if we didn't find a valid chunk - keep existing voiceBuffer
+    if (lowResIsolatedChunks.size() < 5 || lowResChunkFirstIdx < 0)
+    {
+        DBG("isolateBestNote: not enough data, keeping last valid voiceBuffer");
+        return;
+    }
+
+
     // place the first 5 indices of lowResIsolatedChunks into midResIsolatedChunks
     std::vector<int> midResIsolatedChunks;
     int midResChunkFirstIdx = lowResChunkFirstIdx;
@@ -260,7 +269,8 @@ void CounterTune_v2AudioProcessor::resetTiming()
     float currentSpeed = speed;
     sPs = static_cast<int>(std::round(60.0 / currentBpm * getSampleRate() / 4.0 * 1.0 / speed));
 
-    int requiredSize = 32 * sPs + 4096;
+//    int requiredSize = 32 * sPs + 4096;
+    int requiredSize = cycleLength * sPs + 4096;
     inputAudioBuffer.setSize(2, requiredSize, false, true);
     inputAudioBuffer_samplesToRecord.store(requiredSize);
 
@@ -336,7 +346,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
     if (triggerCycle)
     {
         // phase counting variables
-        int phaseAdvance = juce::jmin(((sPs * 32 + std::max(sampleDrift, 0)) - phaseCounter), numSamples);
+//        int phaseAdvance = juce::jmin(((sPs * 32 + std::max(sampleDrift, 0)) - phaseCounter), numSamples);
+        int phaseAdvance = juce::jmin(((sPs * cycleLength + std::max(sampleDrift, 0)) - phaseCounter), numSamples);
 
         // High-resolution counter for recording input audio buffer
         int spaceLeft = inputAudioBuffer_samplesToRecord.load() - inputAudioBuffer_writePos.load();
@@ -348,7 +359,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         inputAudioBuffer_writePos.store(inputAudioBuffer_writePos.load() + toCopy);
 
         // Low-resolution counter for symbolically transcribing input audio
-        for (int n = 0; n < 32; ++n)
+//        for (int n = 0; n < 32; ++n)
+        for (int n = 0; n < cycleLength; ++n)
         {
             if (phaseCounter > (n + 0.5) * sPs)
             {
@@ -366,14 +378,16 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 //                    DBG(capturedMelody[n]);
 
-                    sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
+//                    sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
+                    sampleDrift = static_cast<int>(std::round(cycleLength * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
                     setExecuted(symbolExecuted, n);
                 }
             }
         }
 
         // Low-res playback counter
-        for (int n = 0; n < 32; ++n)
+//        for (int n = 0; n < 32; ++n)
+        for (int n = 0; n < cycleLength; ++n)
         {
             if (phaseCounter >= n * sPs)
             {
@@ -405,7 +419,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     }
 
                     // if next generatedMelody symbol is a new note or noteoff event
-                    if ((generatedMelody[(n + 1) % 32]) >= -1)
+//                    if ((generatedMelody[(n + 1) % 32]) >= -1)
+                    if ((generatedMelody[(n + 1) % cycleLength]) >= -1)
                     {
                         if (release == 0.0f)
                         {
@@ -429,7 +444,8 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
         // Low-res counter for stopping or resetting timing
 
-        if (phaseCounter >= sPs * 32 + sampleDrift)
+//        if (phaseCounter >= sPs * 32 + sampleDrift)
+        if (phaseCounter >= sPs * cycleLength + sampleDrift)
         {
             DBG("cycle end");
 

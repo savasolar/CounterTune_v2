@@ -48,6 +48,7 @@ private:
 
     float bpm = 120.0f;  // high tempos been crashy
     float speed = 1.00;
+    int cycleLength = 2; // was 32
     int sPs = 0;
     int sampleDrift = 0;
     bool isFirstCycle = true;
@@ -60,8 +61,9 @@ private:
     inline void clearExecuted(uint32_t& mask, int step) { jassert(step >= 0 && step < 32); mask &= ~(1u << step); }
     inline void resetAllExecuted(uint32_t& mask) { mask = 0; }
     inline bool isExecuted(uint32_t& mask, int step) const { jassert(step >= 0 && step < 32); return (mask & (1u << step)) != 0; }
-    inline bool allExecuted(uint32_t& mask) const { return mask == 0xFFFFFFFFu; }
-    
+//    inline bool allExecuted(uint32_t& mask) const { return mask == 0xFFFFFFFFu; }
+    inline bool allExecuted(uint32_t& mask) const { return mask == (1u << cycleLength) - 1u; }
+
     void isolateBestNote();
     void resetTiming();
 
