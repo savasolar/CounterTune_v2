@@ -108,7 +108,6 @@ target_include_directories(CounterTune PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/
     ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/dywapitchtrack/
     ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/dywapitchtrack/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/SimpleCompressor/src
 )
 
 # Source files
@@ -119,8 +118,6 @@ target_sources(CounterTune PRIVATE
     Source/PluginProcessor.cpp
     Source/PluginProcessor.h
     Dependencies/dywapitchtrack/src/dywapitchtrack.c
-    Dependencies/SimpleCompressor/src/GainReductionComputer.cpp
-    Dependencies/SimpleCompressor/src/LookAheadGainReduction.cpp
 )
 
 set_source_files_properties(Dependencies/dywapitchtrack/src/dywapitchtrack.c PROPERTIES LANGUAGE C)
@@ -128,6 +125,7 @@ set_source_files_properties(Dependencies/dywapitchtrack/src/dywapitchtrack.c PRO
 # Binary data
 juce_add_binary_data(BinaryResources SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/Resources/uiv7.png
+        ${CMAKE_CURRENT_SOURCE_DIR}/Resources/ChivoMono-Medium.ttf
 )
 
 # Link everything

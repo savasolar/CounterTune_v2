@@ -14,12 +14,68 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
 
+    juce::AudioProcessorValueTreeState& parameters;
+
 private:
     void timerCallback() override;
 
     CounterTune_v2AudioProcessor& audioProcessor;
 
+    bool firstLoad = true;
+
     juce::Image backgroundImage;
+
+    juce::Typeface::Ptr customTypeface;
+    juce::Font getCustomFont(float height)
+    {
+        if (customTypeface == nullptr)
+        {
+            customTypeface = juce::Typeface::createSystemTypefaceFor(BinaryData::ChivoMonoMedium_ttf, BinaryData::ChivoMonoMedium_ttfSize);
+        }
+        if (customTypeface != nullptr)
+        {
+            juce::Font font(customTypeface);
+            font.setHeight(height);
+            return font;
+        }
+        else
+        {
+            return juce::Font(height);
+        }
+    }
+
+    juce::Colour foregroundColor = juce::Colour(0xffffffff);
+    juce::Colour backgroundColor = juce::Colour(0xff000000);
+
+
+
+    juce::TextEditor mixTitleLabel;
+    juce::Slider mixKnob;
+    juce::TextEditor mixValueLabel;
+    void updateMixValueLabel()
+    {
+        float value = audioProcessor.getMixFloat();
+        juce::String text = juce::String(value, 2);
+        mixValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
+
+    juce::TextEditor octaveTitleLabel;
+    juce::Slider octaveKnob;
+    juce::TextEditor octaveValueLabel;
+    void updateOctaveValueLabel()
+    {
+        int value = audioProcessor.getOctaveInt();
+        juce::String text = value > 0 ? "+ " + juce::String(value) : value < 0 ? "- " + juce::String(std::abs(value)) : "0";
+        octaveValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> octaveAttachment;
+
+
+
+
+    void setupParams();
+
 
     // Refactored WaveformViewer - now buffer-agnostic
     struct WaveformViewer : public juce::Component

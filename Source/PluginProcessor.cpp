@@ -15,7 +15,8 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
                        ),
         parameters(*this, nullptr, "Parameters",
         {
-            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.1f)
+            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix", 1}, "Mix", 0.0f, 1.0f, 0.15f),
+            std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"octave", 1}, "Octave", -4, 4, 0)
         })
 #endif
 {
@@ -359,7 +360,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         inputAudioBuffer_writePos.store(inputAudioBuffer_writePos.load() + toCopy);
 
         // Low-resolution counter for symbolically transcribing input audio
-//        for (int n = 0; n < 32; ++n)
         for (int n = 0; n < cycleLength; ++n)
         {
             if (phaseCounter > (n + 0.5) * sPs)
@@ -378,7 +378,7 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 //                    DBG(capturedMelody[n]);
 
-//                    sampleDrift = static_cast<int>(std::round(32.0 * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
+
                     sampleDrift = static_cast<int>(std::round(cycleLength * (60.0 / bpm * getSampleRate() / 4.0 * 1.0 / speed - sPs)));
                     setExecuted(symbolExecuted, n);
                 }
@@ -386,7 +386,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         }
 
         // Low-res playback counter
-//        for (int n = 0; n < 32; ++n)
         for (int n = 0; n < cycleLength; ++n)
         {
             if (phaseCounter >= n * sPs)
@@ -419,7 +418,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                     }
 
                     // if next generatedMelody symbol is a new note or noteoff event
-//                    if ((generatedMelody[(n + 1) % 32]) >= -1)
                     if ((generatedMelody[(n + 1) % cycleLength]) >= -1)
                     {
                         if (release == 0.0f)
@@ -444,7 +442,6 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
         // Low-res counter for stopping or resetting timing
 
-//        if (phaseCounter >= sPs * 32 + sampleDrift)
         if (phaseCounter >= sPs * cycleLength + sampleDrift)
         {
             DBG("cycle end");
@@ -460,6 +457,10 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 if (!detectedNoteNumbers.empty()) { detectedNoteNumbers.erase(detectedNoteNumbers.begin()); }
                 isFirstCycle = false;
             }
+
+
+            generateMelody();
+
 
             isolateBestNote();
 
@@ -582,6 +583,15 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
         dryWetMixer.setWetMixProportion(getMixFloat());
         dryWetMixer.mixWetSamples(block);
 
+    }
+}
+
+void CounterTune_v2AudioProcessor::generateMelody()
+{
+    // populate each index of the generatedMelody vector with a random number from 60 to 72
+    for (auto& note : generatedMelody)
+    {
+        note = 60 + rnd.nextInt(13);  // rnd.nextInt(13) gives 0-12 - 60-72 inclusive
     }
 }
 

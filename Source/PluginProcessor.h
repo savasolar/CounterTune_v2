@@ -4,7 +4,6 @@
 
 #include <JuceHeader.h>
 #include "dywapitchtrack.h"
-//#include "SimpleCompressor.h"
 
 class CounterTune_v2AudioProcessor  : public juce::AudioProcessor
 {
@@ -34,6 +33,11 @@ public:
 
     float getMixFloat() const { return *parameters.getRawParameterValue("mix"); }
     void setMixFloat(float newMixFloat) { auto* param = parameters.getParameter("mix"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newMixFloat)); }
+    int getOctaveInt() const { return *parameters.getRawParameterValue("octave"); }
+    void setOctaveInt(int newOctaveInt) { auto* param = parameters.getParameter("octave"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newOctaveInt)); }
+
+
+
 
     juce::AudioProcessorValueTreeState parameters;
 
@@ -46,7 +50,7 @@ private:
 
     // Timing utilities
 
-    float bpm = 120.0f;  // high tempos been crashy
+    float bpm = 140.0f;  // high tempos been crashy
     float speed = 1.00;
     int cycleLength = 2; // was 32
     int sPs = 0;
@@ -61,7 +65,6 @@ private:
     inline void clearExecuted(uint32_t& mask, int step) { jassert(step >= 0 && step < 32); mask &= ~(1u << step); }
     inline void resetAllExecuted(uint32_t& mask) { mask = 0; }
     inline bool isExecuted(uint32_t& mask, int step) const { jassert(step >= 0 && step < 32); return (mask & (1u << step)) != 0; }
-//    inline bool allExecuted(uint32_t& mask) const { return mask == 0xFFFFFFFFu; }
     inline bool allExecuted(uint32_t& mask) const { return mask == (1u << cycleLength) - 1u; }
 
     void isolateBestNote();
@@ -91,7 +94,8 @@ private:
     std::vector<int> capturedMelody = std::vector<int>(32, -1);
 
     // Melody generation utilities
-    std::vector<int> generatedMelody{64, -2, 64, -2, 64, -2, 64, -2, 62, -2, 62, -2, 62, -2, -62, -2, 60, -2, 60, -2, 60, -2, 60, -2, 59, -2, 59, -2, 59, -2, 59, -2 };
+    void generateMelody();
+    std::vector<int> generatedMelody{60, 62, 64, 65, 67, 69, 71, 72, -2, -2, -2, -2, 72, -2, 71, -2, 69, 69, 67, -2, 67, -2, 60, -2, 59, -2, 59, -2, 59, -2, 59, -2 };
     std::vector<int> lastGeneratedMelody = std::vector<int>(32, -1);
     int detectedKey = 0;
     
@@ -191,9 +195,8 @@ private:
     juce::ADSR::Parameters tailEnvelopeParams;
     std::atomic<bool> useTailEnvelope{ false };
 
+    // Output utilities
     juce::dsp::DryWetMixer<float> dryWetMixer;
-
-//    SimpleCompressor wetLimiter;
     juce::dsp::Limiter<float> wetLimiter;
 
     // random number lookup tables
