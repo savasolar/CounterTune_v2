@@ -60,17 +60,6 @@ private:
     }
     std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> mixAttachment;
 
-    juce::TextEditor octaveTitleLabel;
-    juce::Slider octaveKnob;
-    juce::TextEditor octaveValueLabel;
-    void updateOctaveValueLabel()
-    {
-        int value = audioProcessor.getOctaveInt();
-        juce::String text = value > 0 ? "+ " + juce::String(value) : value < 0 ? "- " + juce::String(std::abs(value)) : "0";
-        octaveValueLabel.setText(text, false);
-    }
-    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> octaveAttachment;
-
     juce::TextEditor tempoTitleLabel;
     juce::Slider tempoKnob;
     juce::TextEditor tempoValueLabel;
@@ -127,6 +116,28 @@ private:
         scaleValueLabel.setText(text, false);
     }
     std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> scaleAttachment;
+
+    juce::TextEditor octaveTitleLabel;
+    juce::Slider octaveKnob;
+    juce::TextEditor octaveValueLabel;
+    void updateOctaveValueLabel()
+    {
+        int value = audioProcessor.getOctaveInt();
+        juce::String text = value > 0 ? "+ " + juce::String(value) : value < 0 ? "- " + juce::String(std::abs(value)) : "0";
+        octaveValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> octaveAttachment;
+
+    juce::TextEditor detuneTitleLabel;
+    juce::Slider detuneKnob;
+    juce::TextEditor detuneValueLabel;
+    void updateDetuneValueLabel()
+    {
+        float value = audioProcessor.getDetuneFloat();
+        juce::String text = juce::String(value, 2);
+        detuneValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> detuneAttachment;
 
 
     void setupParams();

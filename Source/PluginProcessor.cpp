@@ -419,7 +419,16 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
 
 
                         // prepare synthesis buffer with latest info
-                        synthesisBuffer = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
+
+                        // OCTAVE SHIFT AND DETUNE KNOB
+                        float octaveShift = static_cast<float>(getOctaveInt()) * 12.0f;
+                        float detuneShift = getDetuneFloat();
+                        float interval = static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + octaveShift + detuneShift;
+
+                        synthesisBuffer = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), interval);
+
+//                        synthesisBuffer = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)));
+
                         randomOffset = static_cast<int>(synthesisBuffer.getNumSamples() * offsetFractions[offsetIndex & (tableSize - 1)]);
                         synthesisBuffer_readPos.store(0);
 
@@ -524,7 +533,14 @@ void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffe
                 randomPitch = detuneSemitones[detuneIndex & (tableSize - 1)];
                 ++detuneIndex;
 
-                newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomPitch);
+                // OCTAVE SHIFT AND DETUNE KNOB
+                float octaveShift = static_cast<float>(getOctaveInt()) * 12.0f;
+                float detuneShift = getDetuneFloat();
+                float interval = static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + octaveShift + detuneShift;
+
+                newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), interval + randomPitch);
+
+//                newTile = pitchShift(voiceBuffer, (voiceNoteNumber.load() % 12), static_cast<float>((playbackNote % 12) - (voiceNoteNumber.load() % 12)) + randomPitch);
 
 
                 // Calculate overlap and non-overlap first

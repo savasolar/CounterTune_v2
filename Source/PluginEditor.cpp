@@ -28,9 +28,12 @@ void CounterTune_v2AudioProcessorEditor::timerCallback()
     {
         updateMixValueLabel();
         updateTempoValueLabel();
-        // ...
+        updatePeriodValueLabel();
+        updateDensityValueLabel();
+        updateKeyValueLabel();
+        updateScaleValueLabel();
         updateOctaveValueLabel();
-
+        updateDetuneValueLabel();
         firstLoad = false;
     }
 
@@ -150,7 +153,6 @@ void CounterTune_v2AudioProcessorEditor::setupParams()
     tempoKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     tempoKnob.setBounds(0, 80, 240, 20);
     tempoKnob.setRange(60, 240, 1);
-//    tempoKnob.setSkewFactor(0.3);
     tempoKnob.onValueChange = [this]() { updateTempoValueLabel(); };
     addAndMakeVisible(tempoKnob);
 
@@ -492,5 +494,147 @@ void CounterTune_v2AudioProcessorEditor::setupParams()
     scaleValueLabel.onReturnKey = commitScale;
     scaleValueLabel.onFocusLost = commitScale;
 
+    // OCTAVE
+    addAndMakeVisible(octaveTitleLabel);
+#ifdef JUCE_MAC
+    octaveTitleLabel.setBounds(0, 359, 240, 20);
+    octaveTitleLabel.setFont(getCustomFont(14.0f));
+#else
+    octaveTitleLabel.setBounds(0, 360, 240, 20);
+    octaveTitleLabel.setFont(getCustomFont(18.0f));
+#endif
+    octaveTitleLabel.setJustification(juce::Justification::centredLeft);
+    octaveTitleLabel.setColour(juce::TextEditor::textColourId, foregroundColor);
+    octaveTitleLabel.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    octaveTitleLabel.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    octaveTitleLabel.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+    octaveTitleLabel.setReadOnly(true);
+    octaveTitleLabel.setCaretVisible(false);
+    octaveTitleLabel.setMouseCursor(juce::MouseCursor::NormalCursor);
+    octaveTitleLabel.setText("OCTAVE", dontSendNotification);
+
+    octaveAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "octave", octaveKnob);
+    octaveKnob.setSliderStyle(juce::Slider::LinearBar);
+    octaveKnob.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    octaveKnob.setColour(juce::Slider::backgroundColourId, juce::Colours::transparentBlack);
+    octaveKnob.setColour(juce::Slider::trackColourId, foregroundColor);
+    octaveKnob.setColour(juce::Slider::thumbColourId, foregroundColor);
+    octaveKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    octaveKnob.setBounds(0, 380, 240, 20);
+    octaveKnob.setRange(-4, 4, 1);
+    octaveKnob.onValueChange = [this]() { updateOctaveValueLabel(); };
+    addAndMakeVisible(octaveKnob);
+
+    addAndMakeVisible(octaveValueLabel);
+#ifdef JUCE_MAC
+    octaveValueLabel.setBounds(0, 399, 240, 16);
+    octaveValueLabel.setFont(getCustomFont(14.0f));
+#else
+    octaveValueLabel.setBounds(0, 400, 240, 16);
+    octaveValueLabel.setFont(getCustomFont(18.0f));
+#endif
+    octaveValueLabel.setJustification(juce::Justification::topLeft);
+    octaveValueLabel.setMultiLine(false);
+    octaveValueLabel.setReturnKeyStartsNewLine(false);
+    octaveValueLabel.setInputRestrictions(10, "0123456789.-+");
+    octaveValueLabel.setSelectAllWhenFocused(true);
+    octaveValueLabel.setColour(juce::TextEditor::textColourId, foregroundColor);
+    octaveValueLabel.setColour(juce::TextEditor::backgroundColourId, backgroundColor);
+    octaveValueLabel.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    octaveValueLabel.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+    updateOctaveValueLabel();
+    auto commitOctave = [this]()
+        {
+            octaveValueLabel.moveCaretToEnd(false);
+
+            juce::String text = octaveValueLabel.getText().trim();
+
+            if (text.isEmpty())
+            {
+                updateOctaveValueLabel();
+                return;
+            }
+
+            // Remove spaces from the formatted display text (e.g., "- 2" becomes "-2")
+            text = text.removeCharacters(" ");
+
+            int value = text.getIntValue();
+            value = juce::jlimit(-4, 4, value);
+            octaveKnob.setValue(value);
+            updateOctaveValueLabel();
+
+            grabKeyboardFocus();
+        };
+    octaveValueLabel.onReturnKey = commitOctave;
+    octaveValueLabel.onFocusLost = commitOctave;
+
+    // DETUNE
+    addAndMakeVisible(detuneTitleLabel);
+#ifdef JUCE_MAC
+    detuneTitleLabel.setBounds(0, 419, 240, 20);
+    detuneTitleLabel.setFont(getCustomFont(14.0f));
+#else
+    detuneTitleLabel.setBounds(0, 420, 240, 20);
+    detuneTitleLabel.setFont(getCustomFont(18.0f));
+#endif
+    detuneTitleLabel.setJustification(juce::Justification::centredLeft);
+    detuneTitleLabel.setColour(juce::TextEditor::textColourId, foregroundColor);
+    detuneTitleLabel.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    detuneTitleLabel.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    detuneTitleLabel.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+    detuneTitleLabel.setReadOnly(true);
+    detuneTitleLabel.setCaretVisible(false);
+    detuneTitleLabel.setMouseCursor(juce::MouseCursor::NormalCursor);
+    detuneTitleLabel.setText("DETUNE", dontSendNotification);
+
+    detuneAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(parameters, "detune", detuneKnob);
+    detuneKnob.setSliderStyle(juce::Slider::LinearBar);
+    detuneKnob.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    detuneKnob.setColour(juce::Slider::backgroundColourId, juce::Colours::transparentBlack);
+    detuneKnob.setColour(juce::Slider::trackColourId, foregroundColor);
+    detuneKnob.setColour(juce::Slider::thumbColourId, foregroundColor);
+    detuneKnob.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    detuneKnob.setBounds(0, 440, 240, 20);
+    detuneKnob.setRange(-1.0, 1.0, 0.01);
+    detuneKnob.onValueChange = [this]() { updateDetuneValueLabel(); };
+    addAndMakeVisible(detuneKnob);
+
+    addAndMakeVisible(detuneValueLabel);
+#ifdef JUCE_MAC
+    detuneValueLabel.setBounds(0, 459, 240, 16);
+    detuneValueLabel.setFont(getCustomFont(14.0f));
+#else
+    detuneValueLabel.setBounds(0, 460, 240, 16);
+    detuneValueLabel.setFont(getCustomFont(18.0f));
+#endif
+    detuneValueLabel.setJustification(juce::Justification::topLeft);
+    detuneValueLabel.setMultiLine(false);
+    detuneValueLabel.setReturnKeyStartsNewLine(false);
+    detuneValueLabel.setInputRestrictions(10, "0123456789.-+");
+    detuneValueLabel.setSelectAllWhenFocused(true);
+    detuneValueLabel.setColour(juce::TextEditor::textColourId, foregroundColor);
+    detuneValueLabel.setColour(juce::TextEditor::backgroundColourId, backgroundColor);
+    detuneValueLabel.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    detuneValueLabel.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
+    updateDetuneValueLabel();
+    auto commitDetune = [this]()
+        {
+            detuneValueLabel.moveCaretToEnd(false);
+
+            juce::String text = detuneValueLabel.getText().trim();
+            float value = text.getFloatValue();
+            if (text.isEmpty() || !std::isfinite(value))
+            {
+                updateDetuneValueLabel();
+                return;
+            }
+            value = juce::jlimit(-1.0f, 1.0f, value);
+            detuneKnob.setValue(value);
+            updateDetuneValueLabel();
+
+            grabKeyboardFocus();
+        };
+    detuneValueLabel.onReturnKey = commitDetune;
+    detuneValueLabel.onFocusLost = commitDetune;
 
 }
