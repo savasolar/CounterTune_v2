@@ -21,7 +21,8 @@ CounterTune_v2AudioProcessor::CounterTune_v2AudioProcessor()
             std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"density", 1}, "Density", 1, 6, 6),
             std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"key", 1}, "Key", 0, 11, 7),
             std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"scale", 1}, "Scale", 1, 4, 1),
-            std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"octave", 1}, "Octave", -4, 4, 0)
+            std::make_unique<juce::AudioParameterInt>(juce::ParameterID{"octave", 1}, "Octave", -4, 4, 0),
+            std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"detune", 1}, "Detune", -1.0f, 1.0f, 0.0f)
         })
 #endif
 {
@@ -301,6 +302,9 @@ void CounterTune_v2AudioProcessor::resetTiming()
 void CounterTune_v2AudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+
+    synchronizeBpm();
+
     int numSamples = buffer.getNumSamples();
 
     // Mix current block to mono for pitch detection

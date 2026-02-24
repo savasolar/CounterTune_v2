@@ -52,6 +52,57 @@ public:
     int getOctaveInt() const { return *parameters.getRawParameterValue("octave"); }
     void setOctaveInt(int newOctaveInt) { auto* param = parameters.getParameter("octave"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newOctaveInt)); }
 
+    float getDetuneFloat() const { return *parameters.getRawParameterValue("detune"); }
+    void setDetuneFloat(float newDetuneFloat) { auto* param = parameters.getParameter("detune"); auto range = param->getNormalisableRange(); param->setValueNotifyingHost(range.convertTo0to1(newDetuneFloat)); }
+
+    float getDefaultBpmFromHost()
+    {
+        // Default value in case we can't get BPM from host
+        float defaultBpm = 120.0f;
+        if (auto* playHead = getPlayHead())
+        {
+            if (auto position = playHead->getPosition())
+            {
+                if (position->getBpm().hasValue())
+                    return static_cast<float>(*position->getBpm());
+            }
+        }
+        return defaultBpm;
+    }
+    void synchronizeBpm()
+    {
+        float hostBpm = getDefaultBpmFromHost();
+        if (firstSync)
+        {
+            if (!stateLoaded)
+            {
+                // No saved state: initialize BPM to DAW's BPM
+                if (hostBpm > 0)
+                {
+                    setTempoFloat(hostBpm);
+                    oldHostBpm = hostBpm;
+                }
+                stateLoaded = true; // Prevent repeated initialization
+            }
+            else
+            {
+                // Saved state exists: align oldHostBpm to current hostBpm without changing BPM
+                oldHostBpm = hostBpm;
+            }
+            firstSync = false;
+        }
+        else
+        {
+            // Subsequent calls: update only if DAW BPM changes
+            if (hostBpm != oldHostBpm && hostBpm > 0)
+            {
+                setTempoFloat(hostBpm);
+                oldHostBpm = hostBpm;
+            }
+        }
+    }
+
+
 
     juce::AudioBuffer<float> uiWaveform;
     int uiInputNote = -1;
@@ -63,6 +114,9 @@ private:
 
     // Timing utilities
 
+    bool stateLoaded = false;
+    float oldHostBpm = 140.0f;
+    bool firstSync = true;
     float bpm = 140.0f;  // high tempos been crashy
     float speed = 1.00;
     int cycleLength = 2 ; // was 32

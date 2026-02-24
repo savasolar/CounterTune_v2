@@ -71,7 +71,62 @@ private:
     }
     std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> octaveAttachment;
 
+    juce::TextEditor tempoTitleLabel;
+    juce::Slider tempoKnob;
+    juce::TextEditor tempoValueLabel;
+    void updateTempoValueLabel()
+    {
+        float value = audioProcessor.getTempoFloat();
+        juce::String text = juce::String(value);
+        tempoValueLabel.setText(text, false);
+    }
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> tempoAttachment;
 
+    juce::TextEditor periodTitleLabel;
+    juce::Slider periodKnob;
+    juce::TextEditor periodValueLabel;
+    void updatePeriodValueLabel()
+    {
+        int value = audioProcessor.getPeriodInt();
+        juce::String text = juce::String(value);
+        periodValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> periodAttachment;
+
+    juce::TextEditor densityTitleLabel;
+    juce::Slider densityKnob;
+    juce::TextEditor densityValueLabel;
+    void updateDensityValueLabel()
+    {
+        int value = audioProcessor.getDensityInt();
+        juce::String text = juce::String(value);
+        densityValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> densityAttachment;
+
+    juce::TextEditor keyTitleLabel;
+    juce::Slider keyKnob;
+    juce::TextEditor keyValueLabel;
+    juce::StringArray keyNames{ "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+    juce::StringArray altKeyNames{ "C", "DB", "D", "EB", "E", "F", "GB", "G", "AB", "A", "BB", "B" };
+    void updateKeyValueLabel()
+    {
+        int value = audioProcessor.getKeyInt();
+        juce::String text = (value >= 0 && value < keyNames.size()) ? keyNames[value] : juce::String(value);
+        keyValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> keyAttachment;
+
+    juce::TextEditor scaleTitleLabel;
+    juce::Slider scaleKnob;
+    juce::TextEditor scaleValueLabel;
+    void updateScaleValueLabel()
+    {
+        int value = audioProcessor.getScaleInt();
+        juce::String text = juce::String(value);
+        scaleValueLabel.setText(text, false);
+    }
+    std::unique_ptr <juce::AudioProcessorValueTreeState::SliderAttachment> scaleAttachment;
 
 
     void setupParams();
@@ -121,71 +176,21 @@ private:
             float midpointY = (leftPoint + rightPoint) / 2.0f;
             juce::Point<float> customCenter(center.getX(), midpointY);
 
-
-
-
-            // STEP 1: RESIZE
-            // - figure out hypotenuse between (60.0f, leftPoint) and (539.0f, rightPoint)
-            // - set drawable area as a square with its width and height
-            // - also figure out the angle of rotation between the hypotenuse and horizon
-
             float dx = fixedRect.getWidth();
             float dy = rightPoint - leftPoint;
             float side = std::hypot(dx, dy);
             float angle = std::atan2(dy, dx);  // radians
 
-
-
-
-
-            // STEP 2: REPOSITION
-            // - the center point of the resized drawable area has to align with the center point of x:60, y:0, w:480, h:480
-            // but make its y position aligned to the center point between the left point and right point
-
             juce::Rectangle<float> drawRect(0.f, 0.f, side, side);
             drawRect = drawRect.withCentre(customCenter);
 
-
-
-
-
-            // STEP 3: ROTATE
-            // - given the angle of rotation, rotate the resized, repositioned thing
-
             juce::Graphics::ScopedSaveState save(g);
-//            g.addTransform(juce::AffineTransform::rotation(angle, center.getX(), center.getY()));
             g.addTransform(juce::AffineTransform::rotation(angle, customCenter.getX(), customCenter.getY()));
-
-
-
-
-//            // <new>
-//            auto bounds = getLocalBounds().toFloat();
-//            auto centre = bounds.getCentre();
-//
-//            g.saveState();
-////            g.addTransform(juce::AffineTransform::rotation(juce::MathConstants<float>::pi / 4.0f, centre.getX(), centre.getY()));
-//
-//            float angleDegrees = 0.0f;  // change this to whatever you want
-//
-//            g.addTransform(juce::AffineTransform::rotation(angleDegrees * (juce::MathConstants<float>::pi / 180.0f), centre.getX(), centre.getY()));
-//
-//            // </new>
-
-
-
-//            float w = static_cast<float> (getWidth());
-////            float h = static_cast<float> (getHeight()) / 2.0f;
-//            float centreY = static_cast<float> (getHeight()) / 2.0f;
-
 
             // Now draw the waveform inside drawRect
             float w = drawRect.getWidth();
             float h = drawRect.getHeight();
             float centreY = drawRect.getY() + h / 2.0f;
-
-
-//            auto* data = audioBuffer->getReadPointer(0);
 
             juce::Path p;
             float step = static_cast<float> (numSamples) / w;
@@ -194,26 +199,6 @@ private:
             bool first = true;
 
             const float* data = audioBuffer->getReadPointer(0);
-
-
-            //for (float x = 0; x < w; x += 1.0f)
-            //{
-            //    int idx = static_cast<int> (x * step);
-            //    if (idx >= numSamples) break;
-
-            //    float sample = juce::jlimit(-1.0f, 1.0f, data[idx]);
-            //    float y = centreY - sample * centreY;
-
-            //    if (first)
-            //    {
-            //        p.startNewSubPath(x, y);
-            //        first = false;
-            //    }
-            //    else
-            //    {
-            //        p.lineTo(x, y);
-            //    }
-            //}
 
             for (float x_pos = 0; x_pos < w; x_pos += 1.0f)
             {
@@ -236,8 +221,6 @@ private:
             }
 
             g.strokePath(p, juce::PathStrokeType(1.0f));
-
-//            g.restoreState();
         }
 
     private:
