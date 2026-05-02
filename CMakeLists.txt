@@ -6,6 +6,12 @@
 
 # command: C:\Program Files (x86)\Image-Line\FL Studio 12\FL64.exe
 
+# Build commands:
+# cd cmake_build
+# del /s /q *
+# cmake .. -DDEMO_BUILD=OFF (or -DDEMO_BUILD=ON)
+# cmake --build . --config Debug (or --config Release)
+
 
 cmake_minimum_required(VERSION 3.15)
 
